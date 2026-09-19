@@ -5,6 +5,7 @@
 import './addsub.test.js';
 import './generators.test.js';
 import './e5.test.js';
+import './j3.test.js';
 import './recovery.test.js';
 import './explain.test.js';
 import './carryover.test.js';

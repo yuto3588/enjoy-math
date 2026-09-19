@@ -346,6 +346,8 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+.answer.hidden { display: none; }
+
 .answer {
   min-width: 140px;
   min-height: 56px;
@@ -424,6 +426,60 @@ body {
 /* 小5 は最下段に 0 と小数点を並べる。位置は取り違えないよう明示しておく。 */
 .key.zero-narrow { grid-column: 1 / span 2; grid-row: 4; }
 .key.point { grid-column: 3; grid-row: 4; font-size: 26px; }
+
+/* ------------------------------------------------------------------
+   選択肢（中3 の展開・因数分解・二次方程式）
+   答えが式そのものになる単元は、テンキーでは打てないので選ぶ形にする。
+   テンキーと同じ高さの場所に、同じように置く。
+   ------------------------------------------------------------------ */
+
+.keypad.hidden,
+.choices { display: none; }
+
+.choices.active {
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-rows: repeat(4, minmax(var(--tap), 1fr));
+  gap: var(--gap);
+  padding: var(--gap) 12px calc(var(--gap) + 4px);
+  height: clamp(var(--keypad-min), 40vh, 300px);
+}
+
+.choice {
+  -webkit-appearance: none;
+  appearance: none;
+  min-height: var(--tap);
+  padding: 0 12px;
+  border: 1px solid var(--key-border);
+  border-radius: 12px;
+  background: var(--key-bg);
+  color: var(--fg);
+  font-family: inherit;
+  font-size: clamp(16px, 4.6vw, 21px);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  touch-action: manipulation;
+  cursor: pointer;
+  transition: background-color .08s ease, transform .08s ease;
+}
+.choice:active { background: var(--key-press); transform: scale(.99); }
+.choice[disabled] { opacity: .5; }
+
+/* 選んだものが正解だったとき。言葉は出さず、色だけ動かす。 */
+.choice.picked-ok {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  animation: pick-pop .6s ease-out;
+  opacity: 1;
+}
+
+@keyframes pick-pop {
+  0%   { background: var(--key-bg); transform: scale(1); }
+  30%  { background: var(--accent-soft); transform: scale(1.02); }
+  100% { background: var(--accent-soft); transform: scale(1); }
+}
 
 /* ------------------------------------------------------------------
    解説パネル（誤答時）
@@ -629,11 +685,13 @@ body {
     min-height: 0;
     gap: 10px;
   }
-  .keypad {
+  .keypad,
+  .choices.active {
     grid-area: keypad;
     height: auto;
     min-height: 0;
   }
+  .choice { font-size: clamp(14px, 2.4vw, 18px); }
 
   .question { font-size: clamp(24px, 4.5vw, 36px); }
   .answer { min-height: 46px; font-size: 28px; }

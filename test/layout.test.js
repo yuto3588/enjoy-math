@@ -193,6 +193,74 @@ test('レイアウト: どの画面サイズでもスクロールが出ない', 
   }
 });
 
+test('レイアウト: 中3の選択肢がどの画面サイズでも収まる', async () => {
+  if (!canRun) return;
+
+  // 中3 の展開・因数分解・二次方程式はテンキーではなく選択肢が出る。
+  // テンキーとは別の組み方なので、別に測る。
+  const saved = localStorage.getItem('math-practice:j3');
+
+  try {
+    for (const size of SIZES) {
+      const where = `中3 / ${size.name}（${size.w}x${size.h}）`;
+      const m = await measureChoices(size.w, size.h);
+
+      assert(m.count === 4, `${where}: 選択肢が4つ出ていない（${m.count}）`);
+      assert(m.lowest <= size.h + 1, `${where}: 選択肢が画面から出ている`);
+      assert(m.minHeight >= 47.5, `${where}: 選択肢の高さが足りない（${Math.round(m.minHeight)}px）`);
+      assert(!m.overflowY, `${where}: 縦にスクロールする`);
+      assert(!m.overflowX, `${where}: 横にスクロールする`);
+      assert(!m.textClipped, `${where}: 選択肢の式が横にはみ出している`);
+    }
+  } finally {
+    if (saved === null) localStorage.removeItem('math-practice:j3');
+    else localStorage.setItem('math-practice:j3', saved);
+  }
+});
+
+/** 中3 の選択肢の画面を測る。 */
+async function measureChoices(width, height) {
+  const frame = document.createElement('iframe');
+  frame.setAttribute('title', 'choice probe');
+  frame.style.cssText =
+    `position:fixed; left:-10000px; top:0; border:0; width:${width}px; height:${height}px;`;
+  document.body.appendChild(frame);
+
+  try {
+    await new Promise((resolve, reject) => {
+      frame.addEventListener('load', resolve, { once: true });
+      frame.addEventListener('error', () => reject(new Error('読み込めない')), { once: true });
+      frame.src = './index.html?level=4&grade=j3';
+    });
+
+    const doc = frame.contentDocument;
+    for (let i = 0; i < 100 && doc.querySelectorAll('.time').length === 0; i++) {
+      await new Promise((r) => setTimeout(r, 20));
+    }
+    doc.querySelector('.time').click();
+
+    for (let i = 0; i < 100 && doc.querySelectorAll('.choice').length === 0; i++) {
+      await new Promise((r) => setTimeout(r, 20));
+    }
+
+    const buttons = [...doc.querySelectorAll('.choice')];
+    const rects = buttons.map((b) => b.getBoundingClientRect());
+    const root = doc.documentElement;
+
+    return {
+      count: buttons.length,
+      lowest: Math.max(...rects.map((r) => r.bottom)),
+      minHeight: Math.min(...rects.map((r) => r.height)),
+      // 式が枠に収まっているか（はみ出すと途中で切れて読めなくなる）
+      textClipped: buttons.some((b) => b.scrollWidth > b.clientWidth + 1),
+      overflowY: root.scrollHeight > root.clientHeight,
+      overflowX: root.scrollWidth > root.clientWidth
+    };
+  } finally {
+    frame.remove();
+  }
+}
+
 test('レイアウト: 学年えらびがどの画面サイズでも収まる', async () => {
   if (!canRun) return;
 

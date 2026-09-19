@@ -18,7 +18,23 @@ export const PATTERNS = [
   'decimal_mul_dec',   // 小数 × 小数
   'decimal_div_dec',   // 小数 ÷ 小数
   'fraction_same_den', // 分数の加減（分母が同じ）
-  'fraction_diff_den'  // 分数の加減（通分が要る）
+  'fraction_diff_den', // 分数の加減（通分が要る）
+
+  // --- 中3 ---
+  'sqrt_perfect',      // √36
+  'sqrt_product',      // √8 × √2
+  'sqrt_square',       // (√7)²
+  'sqrt_quotient',     // √72 ÷ √2
+  'sqrt_coef_square',  // (2√3)²
+  'expand_two',        // (x+3)(x+5) の展開
+  'expand_square',     // (x+4)² の展開
+  'expand_diff',       // (x+5)(x-5) の展開
+  'factor_two',        // x² + 8x + 15 の因数分解
+  'factor_square',     // x² + 8x + 16 の因数分解
+  'factor_diff',       // x² - 25 の因数分解
+  'solve_factorable',  // x² + 5x + 6 = 0
+  'solve_square',      // x² = 49
+  'solve_double'       // x² + 8x + 16 = 0
 ];
 
 /**
@@ -57,7 +73,27 @@ export const FORMS = [
   'frac_add_same',     // 1/6 + 3/6
   'frac_sub_same',     // 5/6 - 1/6
   'frac_add_diff',     // 1/2 + 1/6
-  'frac_sub_diff'      // 3/4 - 1/6
+  'frac_sub_diff',     // 3/4 - 1/6
+
+  // 中3 平方根
+  'root_of_square',    // √36
+  'root_times_root',   // √8 × √2
+  'root_squared',      // (√7)²
+  'root_div_root',     // √72 ÷ √2
+  'coef_root_squared', // (2√3)²
+
+  // 中3 展開・因数分解
+  'prod_two',          // (x+3)(x+5)
+  'square_binomial',   // (x+4)²
+  'diff_squares',      // (x+5)(x-5)
+  'pair_factors',      // x² + 8x + 15
+  'square_factors',    // x² + 8x + 16
+  'diff_factors',      // x² - 25
+
+  // 中3 二次方程式
+  'two_solutions',     // x² + 5x + 6 = 0
+  'x_squared_equals',  // x² = 49
+  'double_root'        // x² + 8x + 16 = 0
 ];
 
 /**
@@ -117,8 +153,35 @@ export function validateProblem(p) {
     push('question が空');
   }
 
-  if (typeof p.answer !== 'string' || !ANSWER_RE.test(p.answer)) {
-    push(`answer の形式が不正: ${JSON.stringify(p.answer)}`);
+  // 答え方は2つある。
+  //   number  テンキーで数を打つ（中1・小5・中3の平方根）
+  //   choice  並んだ式から選ぶ（中3の展開・因数分解・二次方程式）
+  // 式そのものが答えになる単元はテンキーでは打てないため。
+  const input = p.input || 'number';
+  if (input !== 'number' && input !== 'choice') {
+    push(`未知の input: ${p.input}`);
+  }
+
+  if (input === 'number') {
+    if (typeof p.answer !== 'string' || !ANSWER_RE.test(p.answer)) {
+      push(`answer の形式が不正: ${JSON.stringify(p.answer)}`);
+    }
+    if (p.choices !== undefined) push('number なのに choices がある');
+  } else {
+    if (typeof p.answer !== 'string' || p.answer.trim().length === 0) {
+      push('answer が空');
+    }
+    if (!Array.isArray(p.choices) || p.choices.length < 3 || p.choices.length > 5) {
+      push(`choices が 3〜5 件でない: ${p.choices && p.choices.length}`);
+    } else {
+      const seen = new Set();
+      for (const c of p.choices) {
+        if (typeof c !== 'string' || c.trim().length === 0) push('choices に空のものがある');
+        if (seen.has(c)) push(`choices が重複: ${c}`);
+        seen.add(c);
+      }
+      if (!seen.has(p.answer)) push(`正解が choices に入っていない: ${p.answer}`);
+    }
   }
 
   // facts は解説のテンプレートに差し込む値。ジェネレータ側が必ず用意する。
@@ -141,8 +204,13 @@ export function validateProblem(p) {
     const seen = new Set();
     p.traps.forEach((t, i) => {
       if (!t || typeof t !== 'object') return push(`traps[${i}] がオブジェクトではない`);
-      if (typeof t.value !== 'string' || !ANSWER_RE.test(t.value)) {
-        push(`traps[${i}].value の形式が不正: ${JSON.stringify(t.value)}`);
+
+      if (input === 'number') {
+        if (typeof t.value !== 'string' || !ANSWER_RE.test(t.value)) {
+          push(`traps[${i}].value の形式が不正: ${JSON.stringify(t.value)}`);
+        }
+      } else if (typeof t.value !== 'string' || t.value.trim().length === 0) {
+        push(`traps[${i}].value が空`);
       }
       if (typeof t.reason !== 'string' || t.reason.trim().length === 0) {
         push(`traps[${i}].reason が空`);

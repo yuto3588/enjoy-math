@@ -196,6 +196,237 @@ const TEMPLATES = {
     `${f.rawText} まで合っている`,
     '分子と分母を同じ数で割れるときは、最後まで約分する',
     `答えは ${answer}`
+  ],
+
+  // --- 中3 平方根 ---
+
+  'sqrt_perfect:halved': (f, answer) => [
+    '√ は「半分にする」ではない',
+    `2乗して ${f.n} になる数をさがす`,
+    `${f.root} × ${f.root} = ${f.n} なので ${answer}`
+  ],
+  'sqrt_perfect:root_not_taken': (f, answer) => [
+    '√ を外すところまでやる',
+    `${f.root} × ${f.root} = ${f.n}`,
+    `答えは ${answer}`
+  ],
+
+  'sqrt_product:root_not_taken': (f, answer) => [
+    `√の中をかけて ${f.product} までは合っている`,
+    `√${f.product} はまだ外せる`,
+    `${f.root} × ${f.root} = ${f.product} なので ${answer}`
+  ],
+  'sqrt_product:added_instead': (f, answer) => [
+    'これはかけ算。√の中どうしをかける',
+    `${f.a} × ${f.b} = ${f.product}`,
+    `√${f.product} = ${answer}`
+  ],
+
+  'sqrt_square:squared_twice': (f, answer) => [
+    `2乗するのは √${f.n} であって ${f.n} ではない`,
+    `√${f.n} × √${f.n} = ${f.n}`,
+    `答えは ${answer}`
+  ],
+  'sqrt_square:doubled': (f, answer) => [
+    '2乗は「2倍」ではなく「2回かける」',
+    `√${f.n} × √${f.n} = ${f.n}`,
+    `答えは ${answer}`
+  ],
+
+  'sqrt_quotient:root_not_taken': (f, answer) => [
+    `√の中を割って ${f.quotient} までは合っている`,
+    `√${f.quotient} はまだ外せる`,
+    `${f.root} × ${f.root} = ${f.quotient} なので ${answer}`
+  ],
+  'sqrt_quotient:subtracted_instead': (f, answer) => [
+    'これは割り算。√の中どうしを割る',
+    `${f.a} ÷ ${f.b} = ${f.quotient}`,
+    `√${f.quotient} = ${answer}`
+  ],
+
+  'sqrt_coef_square:coef_not_squared': (f, answer) => [
+    `外の ${f.coef} も2乗する`,
+    `${f.coef}^2 = ${f.coefSquared}、それに ${f.inside} をかける`,
+    `答えは ${answer}`
+  ],
+  'sqrt_coef_square:inside_squared': (f, answer) => [
+    `√${f.inside} を2乗すると ${f.inside}。${f.inside}^2 にはならない`,
+    `${f.coefSquared} × ${f.inside}`,
+    `答えは ${answer}`
+  ],
+
+  // --- 中3 展開 ---
+
+  'expand_two:sum_product_swapped': (f, answer) => [
+    'x の係数が「足した数」、最後の数が「かけた数」',
+    `足すと ${f.sum}、かけると ${f.product}`,
+    `答えは ${answer}`
+  ],
+  'expand_two:middle_missing': (f, answer) => [
+    'x の項が消えてしまっている',
+    `${f.a} と ${f.b} を足した ${f.sum} が x の係数になる`,
+    `答えは ${answer}`
+  ],
+  'expand_two:constant_sign_wrong': (f, answer) => [
+    `最後の数は ${f.a} × ${f.b}`,
+    `${f.a} × ${f.b} = ${f.product}`,
+    `答えは ${answer}`
+  ],
+  'expand_square:middle_missing': (f, answer) => [
+    '2乗しても、真ん中の項は消えない',
+    `x の係数は ${f.a} を2倍して ${f.twice}`,
+    `答えは ${answer}`
+  ],
+  'expand_square:coef_not_doubled': (f, answer) => [
+    `真ん中の項は ${f.a} が2回出てくるので2倍する`,
+    `${f.a} × 2 = ${f.twice}`,
+    `答えは ${answer}`
+  ],
+  'expand_square:constant_not_squared': (f, answer) => [
+    `最後の数は ${f.a} を2乗する`,
+    `${f.a}^2 = ${f.squared}`,
+    `答えは ${answer}`
+  ],
+  'expand_square:middle_sign_wrong': (f, answer) => [
+    `真ん中の項の符号は ${f.a} と同じ`,
+    `${f.a} × 2 = ${f.twice}`,
+    `答えは ${answer}`
+  ],
+
+  'expand_diff:constant_sign_wrong': (f, answer) => [
+    `最後の数は ${f.a} × ${-f.a}`,
+    `プラスとマイナスをかけるのでマイナスになる`,
+    `答えは ${answer}`
+  ],
+  'expand_diff:middle_left': (f, answer) => [
+    `x の係数は ${f.a} と ${-f.a} を足すので 0`,
+    'x の項は消える',
+    `答えは ${answer}`
+  ],
+  'expand_diff:constant_not_squared': (f, answer) => [
+    `最後の数は ${f.a} を2乗する`,
+    `${f.a}^2 = ${f.squared}`,
+    `答えは ${answer}`
+  ],
+
+  // --- 中3 因数分解 ---
+
+  'factor_two:sign_flipped': (f, answer) => [
+    '2つとも符号を逆にすると、かけた数は同じでも足した数が逆になる',
+    `足して ${f.sum} になるのは ${f.a} と ${f.b}`,
+    `答えは ${answer}`
+  ],
+  'factor_two:one_sign_wrong': (f, answer) => [
+    `かけると ${f.product} にならない`,
+    `${f.a} × ${f.b} = ${f.product}、${f.a} + ${f.b} = ${f.sum}`,
+    `答えは ${answer}`
+  ],
+  'factor_two:sum_wrong': (f, answer) => [
+    `かけ算は合っているが、足すと ${f.sum} にならない`,
+    `${f.a} + ${f.b} = ${f.sum}`,
+    `答えは ${answer}`
+  ],
+  'factor_two:sum_product_swapped': (f, answer) => [
+    'かっこに入るのは、足した数とかけた数ではない',
+    `かけて ${f.product}、足して ${f.sum} になる ${f.a} と ${f.b}`,
+    `答えは ${answer}`
+  ],
+
+  'factor_square:sign_flipped': (f, answer) => [
+    `真ん中が ${f.twice > 0 ? '+' : '-'}${Math.abs(f.twice)}x なので、2つの数はどちらも${f.a > 0 ? 'プラス' : 'マイナス'}`,
+    `${f.a} + ${f.a} = ${f.twice}`,
+    `答えは ${answer}`
+  ],
+  'factor_square:one_sign_wrong': (f, answer) => [
+    `かけると ${f.squared} にならない`,
+    `${f.a} × ${f.a} = ${f.squared}`,
+    `答えは ${answer}`
+  ],
+  'factor_square:sum_wrong': (f, answer) => [
+    `かけ算は合っているが、足すと ${f.twice} にならない`,
+    `${f.a} + ${f.a} = ${f.twice}`,
+    `答えは ${answer}`
+  ],
+  'factor_square:sum_product_swapped': (f, answer) => [
+    'かっこに入るのは、足した数とかけた数ではない',
+    `どちらも ${f.a} になる`,
+    `答えは ${answer}`
+  ],
+
+  'factor_diff:sign_flipped': (f, answer) => [
+    `最後の数が ${-f.squared} なので、2つの数の符号は違う`,
+    `${f.a} × ${-f.a} = ${-f.squared}`,
+    `答えは ${answer}`
+  ],
+  'factor_diff:sign_flipped_both': (f, answer) => [
+    `${-f.a} を2回かけると +${f.squared} になってしまう`,
+    `${f.a} と ${-f.a} を組み合わせる`,
+    `答えは ${answer}`
+  ],
+  'factor_diff:sum_wrong': (f, answer) => [
+    'かけ算は合っているが、足すと 0 にならない',
+    `${f.a} + ${-f.a} = 0`,
+    `答えは ${answer}`
+  ],
+
+  // --- 中3 二次方程式 ---
+
+  'solve_factorable:sign_flipped': (f, answer) => [
+    `${f.factored} = 0 まで分けられる`,
+    'かっこの中が 0 になる x をさがすので、符号は逆になる',
+    `答えは ${answer}`
+  ],
+  'solve_factorable:one_sign_wrong': (f, answer) => [
+    `${f.factored} = 0 まで分けられる`,
+    'どちらのかっこも、中が 0 になる x を出す',
+    `答えは ${answer}`
+  ],
+  'solve_factorable:sum_product_used': (f, answer) => [
+    `足した数とかけた数（${f.sum} と ${f.product}）は解ではない`,
+    `${f.factored} = 0 から出す`,
+    `答えは ${answer}`
+  ],
+
+  'solve_square:negative_missing': (f, answer) => [
+    `2乗して ${f.n} になる数は2つある`,
+    `${-f.r} を2乗しても ${f.n} になる`,
+    `答えは ${answer}`
+  ],
+  'solve_square:root_not_taken': (f, answer) => [
+    `x そのものではなく、x を2乗した数が ${f.n}`,
+    `${f.r} × ${f.r} = ${f.n}`,
+    `答えは ${answer}`
+  ],
+  'solve_square:halved': (f, answer) => [
+    '2乗は「2倍」ではないので、半分にしても戻らない',
+    `${f.r} × ${f.r} = ${f.n}`,
+    `答えは ${answer}`
+  ],
+  'solve_square:positive_missing': (f, answer) => [
+    `2乗して ${f.n} になる数は2つある`,
+    `${f.r} を2乗しても ${f.n} になる`,
+    `答えは ${answer}`
+  ],
+
+  'solve_double:two_solutions_assumed': (f, answer) => [
+    `かけて ${f.squared}、足して ${f.twice} になるのは ${f.a} が2回`,
+    '同じ数が2回なので、解は1つだけ',
+    `答えは ${answer}`
+  ],
+  'solve_double:sign_flipped': (f, answer) => [
+    'かっこの中が 0 になる x をさがすので、符号は逆になる',
+    `${f.a} の符号を逆にする`,
+    `答えは ${answer}`
+  ],
+  'solve_double:sum_product_used': (f, answer) => [
+    `足した数とかけた数（${f.twice} と ${f.squared}）は解ではない`,
+    `どちらのかっこも ${f.a} なので、解は1つ`,
+    `答えは ${answer}`
+  ],
+  'solve_double:doubled': (f, answer) => [
+    `かっこに入る数は ${f.a} で、${f.twice} ではない`,
+    `${f.a} + ${f.a} = ${f.twice} だから真ん中が ${f.twice}x になる`,
+    `答えは ${answer}`
   ]
 };
 

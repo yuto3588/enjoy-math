@@ -71,6 +71,7 @@ const el = {
   question: document.getElementById('question'),
   answerBox: document.getElementById('answerBox'),
   keypad: document.getElementById('keypad'),
+  choices: document.getElementById('choices'),
   progressFill: document.getElementById('progressFill'),
   remain: document.getElementById('remain'),
   pauseBtn: document.getElementById('pauseBtn'),
@@ -154,6 +155,7 @@ const state = {
   current: null,
   origin: null,      // つまずいた元の問題。類題・易問の条件をここから引き継ぐ
   fromCarryOver: false,
+  picked: null,      // 選択肢で答えたときに押したボタン（正解の演出に使う）
   recent: [],
   solved: 0,         // 通常フローで片付いた問題数。誤答フロー中の問題は数えない
   pending: [],       // セッション冒頭に出す持ち越し
@@ -328,8 +330,48 @@ function nextProblem() {
   if (state.recent.length > 3) state.recent.shift();
 
   showQuestion(state.current.question);
-  keypad.clear();
-  keypad.setEnabled(true);
+  showInput(state.current);
+}
+
+/**
+ * その問題の答え方に合わせて、下半分を組み替える。
+ *
+ * 数で答える単元はテンキー、式で答える単元は選択肢。
+ * レベルごとに答え方はそろえてあるので、1回の学習の途中で入れ替わることはない。
+ */
+function showInput(problem) {
+  const isChoice = problem.input === 'choice';
+  state.picked = null;
+
+  el.keypad.classList.toggle('hidden', isChoice);
+  el.choices.classList.toggle('active', isChoice);
+  el.answerBox.classList.toggle('hidden', isChoice);
+
+  if (!isChoice) {
+    keypad.clear();
+    keypad.setEnabled(true);
+    return;
+  }
+
+  el.choices.innerHTML = '';
+  for (const text of problem.choices) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'choice';
+    btn.textContent = forDisplay(text);
+    btn.addEventListener('click', () => {
+      if (btn.disabled) return;
+      state.picked = btn;
+      handleSubmit(text);
+    });
+    el.choices.appendChild(btn);
+  }
+}
+
+/** 答えられる状態にするかどうか。テンキーでも選択肢でも同じように使う。 */
+function setInputEnabled(next) {
+  keypad.setEnabled(next && state.current !== null && state.current.input !== 'choice');
+  for (const btn of el.choices.querySelectorAll('.choice')) btn.disabled = !next;
 }
 
 // --- 解答 -----------------------------------------------------------------
@@ -337,11 +379,12 @@ function nextProblem() {
 function handleSubmit(raw) {
   if (!isAnswering()) return;
 
-  // "2.50" と "2.5"、"02" と "2" は同じ答えとして扱う。
+  // テンキーで打ったものは、"2.50" と "2.5"、"02" と "2" を同じ答えとして扱う。
   // 分数の約分だけはしない（約分忘れを専用の解説で拾うため）。
-  const value = normalizeAnswer(raw);
+  // 選択肢はジェネレータが作った文字列そのものなので、そろえる必要がない。
+  const value = state.current.input === 'choice' ? raw : normalizeAnswer(raw);
   const correct = value === state.current.answer;
-  keypad.setEnabled(false);
+  setInputEnabled(false);
 
   if (correct) onCorrect();
   else onWrong(value);
@@ -375,14 +418,17 @@ function onCorrect() {
   // 正解のフィードバック。言葉は出さない（褒め言葉は子供扱いに読まれるため）。
   // 印と色だけを 0.6 秒動かす。テンポは変えない。
   el.stage.classList.add('flash');
-  el.answerBox.classList.add('ok');
+  if (state.picked) state.picked.classList.add('picked-ok');
+  else el.answerBox.classList.add('ok');
   el.tick.classList.remove('on');
   void el.tick.offsetWidth; // 連続で正解しても毎回動かすため、いったん止める
   el.tick.classList.add('on');
 
+  const picked = state.picked;
   setTimeout(() => {
     el.stage.classList.remove('flash');
     el.answerBox.classList.remove('ok');
+    if (picked) picked.classList.remove('picked-ok');
     el.tick.classList.remove('on');
     advance();
   }, FLASH_MS);
@@ -492,7 +538,7 @@ function logSession() {
 
 function finish() {
   if (state.timer) state.timer.stop();
-  keypad.setEnabled(false);
+  setInputEnabled(false);
   closeOverlay();
   el.pausePanel.classList.remove('active');
 

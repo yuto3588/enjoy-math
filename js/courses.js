@@ -13,10 +13,12 @@
 
 import * as j1 from './generators/index.js';
 import * as e5 from './generators/e5/index.js';
+import * as j3 from './generators/j3/index.js';
 
 const COURSES = {
   e5,
-  j1
+  j1,
+  j3
 };
 
 /** その学年の問題を作る一式。まだ無ければ null。 */
