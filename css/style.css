@@ -218,6 +218,7 @@ body {
 }
 
 .stage {
+  position: relative;
   flex: 1;
   min-height: 0;
   display: flex;
@@ -229,8 +230,43 @@ body {
   transition: background-color .18s ease;
 }
 
-/* 正解時のフィードバック。文字は出さず、0.6秒だけ色が動く。 */
+/* 正解時のフィードバック。
+   言葉は出さない（褒め言葉は子供扱いに読まれるため）。
+   かわりに、押した手応えが残るように印と色だけを動かす。 */
 .stage.flash { background: var(--accent-soft); }
+
+/* 式と答えの上の空いているところに出す。
+   問題や入力した答えに重ならないようにするため。 */
+.tick {
+  position: absolute;
+  left: 50%;
+  top: 4px;
+  transform: translate(-50%, 0) scale(.4);
+  transform-origin: 50% 50%;
+  font-size: clamp(42px, 14vw, 58px);
+  line-height: 1;
+  font-weight: 700;
+  color: var(--accent);
+  opacity: 0;
+  pointer-events: none;
+}
+.tick.on { animation: tick-pop .62s ease-out; }
+
+@keyframes tick-pop {
+  0%   { opacity: 0; transform: translate(-50%, 0) scale(.4); }
+  28%  { opacity: 1; transform: translate(-50%, 0) scale(1.18); }
+  52%  { opacity: 1; transform: translate(-50%, 0) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, 0) scale(1.06); }
+}
+
+/* 入力した答えのところから色が広がる */
+.answer.ok { animation: answer-pop .6s ease-out; }
+
+@keyframes answer-pop {
+  0%   { border-bottom-color: var(--line); transform: scale(1); }
+  30%  { border-bottom-color: var(--accent); transform: scale(1.06); }
+  100% { border-bottom-color: var(--accent); transform: scale(1); }
+}
 
 /* 式は必ず1行に収める。途中で折り返すと式として読めなくなるため、
    長い式は app.js 側で文字サイズを段階的に下げる。 */
@@ -457,8 +493,50 @@ body {
   padding: 20px;
 }
 .done h1 { font-size: 28px; font-weight: 600; margin: 0; }
-.done p { font-size: 16px; color: var(--muted); margin: 0 0 18px; }
-.done .wide { max-width: 220px; }
+.done p { font-size: 16px; color: var(--muted); margin: 0; }
+.done .wide { max-width: 220px; margin-top: 18px; }
+
+/* その日に解いた問題を、ひとつずつ積み上げて見せる。
+   数で評価するのではなく、やったことをそのまま置くだけ。 */
+.dots {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-content: center;
+  gap: 5px;
+  width: 100%;
+  max-width: 300px;
+  min-height: 14px;
+  margin: 6px 0 2px;
+}
+.dot {
+  width: var(--dot-size, 10px);
+  height: var(--dot-size, 10px);
+  border-radius: 50%;
+  background: var(--accent);
+  opacity: 0;
+  transform: scale(.3);
+  animation: dot-in .3s ease-out forwards;
+}
+
+@keyframes dot-in {
+  to { opacity: .8; transform: scale(1); }
+}
+
+/* 量に関係なく同じ文言にする。10分の日と60分の日で差をつけない。 */
+.done-note { font-size: 15px; }
+
+/* 数と一言は、問題が積み上がったあとに出す */
+#doneCount,
+.done-note {
+  opacity: 0;
+  animation: note-in .45s ease-out forwards;
+}
+
+@keyframes note-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
 
 /* ------------------------------------------------------------------
    横向き

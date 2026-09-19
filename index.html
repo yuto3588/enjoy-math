@@ -51,6 +51,7 @@
     <div class="stage" id="stage">
       <div class="question" id="question"></div>
       <div class="answer" id="answerBox"></div>
+      <div class="tick" id="tick" aria-hidden="true">✓</div>
     </div>
 
     <div class="keypad" id="keypad"></div>
@@ -60,7 +61,9 @@
   <section class="screen" id="screen-done">
     <div class="done">
       <h1>今日の分、終わり！</h1>
+      <div class="dots" id="doneDots" aria-hidden="true"></div>
       <p id="doneCount"></p>
+      <p class="done-note" id="doneNote">今日も開いたね</p>
       <button type="button" class="wide ghost" id="homeBtn">ホームへ</button>
     </div>
   </section>
