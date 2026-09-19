@@ -9,6 +9,7 @@ import './explain.test.js';
 import './carryover.test.js';
 import './timer.test.js';
 import './storage.test.js';
+import './profile.test.js';
 import './level.test.js';
 import './pwa.test.js';
 import './layout.test.js';

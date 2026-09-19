@@ -108,6 +108,7 @@ body {
    ------------------------------------------------------------------ */
 
 .home {
+  position: relative;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -151,6 +152,70 @@ body {
 }
 .time:active { background: var(--key-press); transform: scale(.97); }
 .time > span { font-size: 15px; font-weight: 500; margin-left: 1px; }
+
+/* ------------------------------------------------------------------
+   学年えらび
+   3つを完全に同格に扱う。どれかを推奨として強調しない。
+   選んだあとの進み具合や、他の学年の様子は一切見せない。
+   ------------------------------------------------------------------ */
+
+.grades {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  max-width: 400px;
+}
+.grade {
+  -webkit-appearance: none;
+  appearance: none;
+  flex: 1 1 0;
+  min-width: var(--tap);
+  min-height: 92px;
+  padding: 0 4px;
+  border: 1px solid var(--key-border);
+  border-radius: 14px;
+  background: var(--key-bg);
+  color: var(--fg);
+  font-family: inherit;
+  font-size: 26px;
+  font-weight: 600;
+  touch-action: manipulation;
+  cursor: pointer;
+  transition: background-color .08s ease, transform .08s ease;
+}
+.grade:active { background: var(--key-press); transform: scale(.97); }
+
+/* まだ作っていない学年。押せないことだけ分かればよい。 */
+.grade[disabled] { opacity: .45; cursor: default; }
+.grade > span {
+  display: block;
+  margin-top: 5px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+/* ホームに置く、いまの学年。押すと選び直せる。
+   小さく灰色にして、成績表示のように見えないようにする。
+   中央寄せのレイアウトを動かさないよう、流れから外して置く。 */
+.grade-tag {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  -webkit-appearance: none;
+  appearance: none;
+  min-height: var(--tap);
+  padding: 0 14px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 14px;
+  touch-action: manipulation;
+  cursor: pointer;
+}
+.grade-tag:active { opacity: .6; }
 
 /* 持ち越しの一言。責める書き方をしない。件数以外は出さない。 */
 .carry {
@@ -573,6 +638,7 @@ body {
   .home { gap: 18px; }
   .home .ask { font-size: 20px; }
   .time { min-height: 76px; font-size: 26px; }
+  .grade { min-height: 76px; font-size: 22px; }
 
   .explain-body { gap: 16px; }
   .explain .expr { font-size: 24px; }

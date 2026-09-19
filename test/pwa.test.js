@@ -147,17 +147,18 @@ test('外部通信: 送信するのは学習量の記録だけで、宛先は同
   }
 });
 
-test('外部通信: 送るのは 日付 / 時間 / 問題数 だけ', async () => {
+test('外部通信: 送るのは 日付 / 学年 / 時間 / 問題数 だけ', async () => {
   if (!canRun) return;
 
   // 正誤や点数を送り始めていないかを見張る。
+  // 学年は、3人が別々の端末で使うので、どの子の分かを分けるために送る。
   const src = withoutComments(await text('./js/app.js'));
   const body = /body:\s*JSON\.stringify\(\{([\s\S]*?)\}\)/.exec(src);
   assert(body, '送信内容を読み取れない');
 
   const keys = [...body[1].matchAll(/(\w+)\s*:/g)].map((m) => m[1]).sort();
   assert(
-    JSON.stringify(keys) === JSON.stringify(['date', 'minutes', 'solved']),
+    JSON.stringify(keys) === JSON.stringify(['date', 'grade', 'minutes', 'solved']),
     `送信内容が変わっている: ${keys.join(', ')}`
   );
 });

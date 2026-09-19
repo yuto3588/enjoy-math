@@ -10,7 +10,22 @@
 // localStorage が使えない環境（プライベートブラウズ等）でも、
 // 保存されないだけで普通に動く。
 
-export const STORAGE_KEY = 'math-practice';
+import { DEFAULT_GRADE, isGrade } from './profile.js';
+
+// 学習の記録は学年ごとに別のキーに入れる（math-practice:j1 など）。
+// 混ぜると、下の子の結果で上の子のレベルが動いてしまう。
+const PREFIX = 'math-practice';
+
+/** 学年を分ける前に使っていたキー。中1のものとして一度だけ引き継ぐ。 */
+export const LEGACY_KEY = PREFIX;
+
+/** この端末を誰が使うか（学年）。学習の記録とは別に1つだけ持つ。 */
+export const GRADE_KEY = `${PREFIX}:grade`;
+
+export function keyFor(grade) {
+  return `${PREFIX}:${isGrade(grade) ? grade : DEFAULT_GRADE}`;
+}
+
 export const CURRENT_VERSION = 1;
 
 const DEFAULT_LEVEL = 2;
@@ -134,12 +149,12 @@ export function defaultStorage() {
 }
 
 /** 読み込む。何が起きても必ず使える状態を返す。 */
-export function load(storage = defaultStorage()) {
+export function load(grade = DEFAULT_GRADE, storage = defaultStorage()) {
   if (!storage) return defaultState();
 
   let raw;
   try {
-    raw = storage.getItem(STORAGE_KEY);
+    raw = storage.getItem(keyFor(grade));
   } catch {
     return defaultState();
   }
@@ -157,22 +172,78 @@ export function load(storage = defaultStorage()) {
 }
 
 /** 保存する。失敗しても例外を投げず false を返すだけ。 */
-export function save(state, storage = defaultStorage()) {
+export function save(state, grade = DEFAULT_GRADE, storage = defaultStorage()) {
   if (!storage) return false;
   try {
     const clean = sanitize({ ...state, version: CURRENT_VERSION });
-    storage.setItem(STORAGE_KEY, JSON.stringify(clean));
+    storage.setItem(keyFor(grade), JSON.stringify(clean));
     return true;
   } catch {
     return false;
   }
 }
 
-/** 消す（開発用）。 */
-export function clear(storage = defaultStorage()) {
+/** その学年の記録を消す（開発用）。他の学年には触らない。 */
+export function clear(grade = DEFAULT_GRADE, storage = defaultStorage()) {
   try {
-    if (storage) storage.removeItem(STORAGE_KEY);
+    if (storage) storage.removeItem(keyFor(grade));
   } catch {
     /* 消せなくても構わない */
+  }
+}
+
+// --- この端末を使う学年 -----------------------------------------------------
+
+/** 保存されている学年。決まっていない、または壊れていれば null。 */
+export function loadGrade(storage = defaultStorage()) {
+  if (!storage) return null;
+  try {
+    const raw = storage.getItem(GRADE_KEY);
+    return isGrade(raw) ? raw : null;
+  } catch {
+    return null;
+  }
+}
+
+/** 学年を覚える。失敗しても false を返すだけ。 */
+export function saveGrade(grade, storage = defaultStorage()) {
+  if (!storage || !isGrade(grade)) return false;
+  try {
+    storage.setItem(GRADE_KEY, grade);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** 学年を忘れる（次の起動で選び直しになる）。 */
+export function clearGrade(storage = defaultStorage()) {
+  try {
+    if (storage) storage.removeItem(GRADE_KEY);
+  } catch {
+    /* 消せなくても構わない */
+  }
+}
+
+/**
+ * 学年を分ける前に保存されていた記録を、中1のものとして引き継ぐ。
+ *
+ * 引き継いだら古いキーは消す。残したままにすると、
+ * 中1の記録をリセットしたときに、消したはずの古い記録がまた復活してしまう。
+ * 何が起きても例外を外に出さない（起動の途中で呼ぶため）。
+ */
+export function migrateLegacy(storage = defaultStorage()) {
+  if (!storage) return false;
+  try {
+    const legacy = storage.getItem(LEGACY_KEY);
+    if (legacy == null) return false;
+
+    const target = keyFor(DEFAULT_GRADE);
+    // すでに中1の記録があるなら、そちらを正とする（上書きしない）
+    if (storage.getItem(target) == null) storage.setItem(target, legacy);
+    storage.removeItem(LEGACY_KEY);
+    return true;
+  } catch {
+    return false;
   }
 }

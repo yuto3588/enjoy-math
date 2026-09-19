@@ -4,7 +4,14 @@
 // 壊し方をひととおり試して、どれでも例外が出ないことを見る。
 
 import { test, assert, assertEqual, assertDeepEqual } from './runner.js';
-import { sanitize, defaultState, load, save, clear, STORAGE_KEY, CURRENT_VERSION } from '../js/storage.js';
+import {
+  sanitize, defaultState, load, save, clear, CURRENT_VERSION,
+  keyFor, LEGACY_KEY, GRADE_KEY, loadGrade, saveGrade, clearGrade, migrateLegacy
+} from '../js/storage.js';
+
+// 学習の記録は学年ごとに分かれている。ここでは中1を代表に使う。
+const GRADE = 'j1';
+const KEY = keyFor(GRADE);
 
 /** メモリ上の localStorage もどき。 */
 function memoryStorage(initial = {}) {
@@ -37,41 +44,41 @@ const validState = () => ({
 test('保存: 正常な内容はそのまま往復する', () => {
   const s = memoryStorage();
   const original = validState();
-  assertEqual(save(original, s), true);
-  assertDeepEqual(load(s), original);
+  assertEqual(save(original, GRADE, s), true);
+  assertDeepEqual(load(GRADE, s), original);
 });
 
 test('保存: 何も入っていなければ初期状態を返す', () => {
-  assertDeepEqual(load(memoryStorage()), defaultState());
+  assertDeepEqual(load(GRADE, memoryStorage()), defaultState());
 });
 
 test('保存: clear で消える', () => {
   const s = memoryStorage();
-  save(validState(), s);
-  clear(s);
-  assertDeepEqual(load(s), defaultState());
+  save(validState(), GRADE, s);
+  clear(GRADE, s);
+  assertDeepEqual(load(GRADE, s), defaultState());
 });
 
 // --- 壊れたデータ ----------------------------------------------------------
 
 test('破損: JSON として読めないときは初期状態で起動する', () => {
   for (const junk of ['', '{', 'これは JSON ではない', '<html>', '{"a":']) {
-    const s = memoryStorage({ [STORAGE_KEY]: junk });
-    assertDeepEqual(load(s), defaultState(), `落ちるか壊れた: ${junk}`);
+    const s = memoryStorage({ [KEY]: junk });
+    assertDeepEqual(load(GRADE, s), defaultState(), `落ちるか壊れた: ${junk}`);
   }
 });
 
 test('破損: JSON だがオブジェクトでないときは初期状態で起動する', () => {
   for (const junk of ['null', '123', '"文字列"', '[1,2,3]', 'true']) {
-    const s = memoryStorage({ [STORAGE_KEY]: junk });
-    assertDeepEqual(load(s), defaultState(), `落ちるか壊れた: ${junk}`);
+    const s = memoryStorage({ [KEY]: junk });
+    assertDeepEqual(load(GRADE, s), defaultState(), `落ちるか壊れた: ${junk}`);
   }
 });
 
 test('破損: 1項目だけ壊れていても、他の項目は生き残る', () => {
   const broken = { ...validState(), level: 'あ' };
-  const s = memoryStorage({ [STORAGE_KEY]: JSON.stringify(broken) });
-  const loaded = load(s);
+  const s = memoryStorage({ [KEY]: JSON.stringify(broken) });
+  const loaded = load(GRADE, s);
 
   assertEqual(loaded.level, defaultState().level, 'level が既定値に戻っていない');
   assertEqual(loaded.carryOver.length, 1, 'carryOver まで巻き添えで消えた');
@@ -80,8 +87,8 @@ test('破損: 1項目だけ壊れていても、他の項目は生き残る', ()
 
 test('破損: history が配列でなくても他は残る', () => {
   const broken = { ...validState(), history: 'こわれた' };
-  const s = memoryStorage({ [STORAGE_KEY]: JSON.stringify(broken) });
-  const loaded = load(s);
+  const s = memoryStorage({ [KEY]: JSON.stringify(broken) });
+  const loaded = load(GRADE, s);
   assertDeepEqual(loaded.history, []);
   assertEqual(loaded.carryOver.length, 1);
 });
@@ -97,8 +104,8 @@ test('破損: 配列の中の1件だけ壊れていても、その1件だけ捨�
       { pattern: 'c', correct: false, at: 4 }
     ]
   };
-  const s = memoryStorage({ [STORAGE_KEY]: JSON.stringify(broken) });
-  assertDeepEqual(load(s).history.map((h) => h.pattern), ['a', 'c']);
+  const s = memoryStorage({ [KEY]: JSON.stringify(broken) });
+  assertDeepEqual(load(GRADE, s).history.map((h) => h.pattern), ['a', 'c']);
 });
 
 test('破損: どんな値を sanitize に渡しても例外を投げない', () => {
@@ -120,8 +127,8 @@ test('破損: どんな値を sanitize に渡しても例外を投げない', ()
 
 test('バージョン違い: マイグレーションせず level だけ引き継ぐ', () => {
   const old = { ...validState(), version: 99 };
-  const s = memoryStorage({ [STORAGE_KEY]: JSON.stringify(old) });
-  const loaded = load(s);
+  const s = memoryStorage({ [KEY]: JSON.stringify(old) });
+  const loaded = load(GRADE, s);
 
   assertEqual(loaded.version, CURRENT_VERSION);
   assertEqual(loaded.level, 2, 'level が引き継がれていない');
@@ -132,8 +139,8 @@ test('バージョン違い: マイグレーションせず level だけ引き�
 
 test('バージョン違い: level も壊れていれば既定値になる', () => {
   const old = { version: 99, level: -3 };
-  const s = memoryStorage({ [STORAGE_KEY]: JSON.stringify(old) });
-  assertEqual(load(s).level, defaultState().level);
+  const s = memoryStorage({ [KEY]: JSON.stringify(old) });
+  assertEqual(load(GRADE, s).level, defaultState().level);
 });
 
 // --- 件数の上限 ------------------------------------------------------------
@@ -162,21 +169,131 @@ test('上限: carryOver の pattern が重複していたら1件にまとめる'
 // --- localStorage が使えない環境 -------------------------------------------
 
 test('localStorage が例外を投げても、読み込みは初期状態を返す', () => {
-  assertDeepEqual(load(throwingStorage()), defaultState());
+  assertDeepEqual(load(GRADE, throwingStorage()), defaultState());
 });
 
 test('localStorage が例外を投げても、保存は false を返すだけで落ちない', () => {
-  assertEqual(save(validState(), throwingStorage()), false);
+  assertEqual(save(validState(), GRADE, throwingStorage()), false);
 });
 
 test('localStorage が無くても落ちない', () => {
-  assertDeepEqual(load(null), defaultState());
-  assertEqual(save(validState(), null), false);
-  clear(null); // 例外が出なければよい
+  assertDeepEqual(load(GRADE, null), defaultState());
+  assertEqual(save(validState(), GRADE, null), false);
+  clear(GRADE, null); // 例外が出なければよい
 });
 
 test('保存できる量を超えても落ちない', () => {
   const s = memoryStorage();
   s.setItem = () => { throw new Error('QuotaExceededError'); };
-  assertEqual(save(validState(), s), false);
+  assertEqual(save(validState(), GRADE, s), false);
+});
+
+// --- 学年ごとに分かれていること --------------------------------------------
+//
+// ここが混ざると、下の子が解いた結果で上の子のレベルが動き、
+// 持ち越しの問題も入れ替わってしまう。
+
+test('学年: 別の学年の記録は互いに影響しない', () => {
+  const s = memoryStorage();
+
+  save({ ...validState(), level: 5 }, 'j3', s);
+  save({ ...validState(), level: 1 }, 'e5', s);
+
+  assertEqual(load('j3', s).level, 5);
+  assertEqual(load('e5', s).level, 1);
+  assertDeepEqual(load('j1', s), defaultState(), '触っていない学年に何か書かれた');
+});
+
+test('学年: 1つの学年を消しても、他の学年は残る', () => {
+  const s = memoryStorage();
+  save({ ...validState(), level: 4 }, 'j1', s);
+  save({ ...validState(), level: 5 }, 'j3', s);
+
+  clear('j1', s);
+
+  assertDeepEqual(load('j1', s), defaultState());
+  assertEqual(load('j3', s).level, 5, '他の学年まで消えた');
+});
+
+test('学年: 知らない学年を渡されても落ちず、既定の学年として扱う', () => {
+  const s = memoryStorage();
+  for (const bad of [null, undefined, '', 'x', 0, {}, []]) {
+    assertEqual(save(validState(), bad, s), true, `save で落ちた: ${String(bad)}`);
+    assert(load(bad, s).level >= 1, `load で落ちた: ${String(bad)}`);
+  }
+  assertEqual(load('j1', s).level, validState().level, '既定の学年に入っていない');
+});
+
+// --- この端末を使う学年 -----------------------------------------------------
+
+test('学年: 覚えた学年を読み出せる', () => {
+  const s = memoryStorage();
+  assertEqual(loadGrade(s), null, '最初から何か入っている');
+  assertEqual(saveGrade('e5', s), true);
+  assertEqual(loadGrade(s), 'e5');
+  clearGrade(s);
+  assertEqual(loadGrade(s), null);
+});
+
+test('学年: 壊れた学年が入っていたら、決まっていない扱いにする', () => {
+  for (const junk of ['', 'chugaku1', '中1', '{}', '1']) {
+    assertEqual(loadGrade(memoryStorage({ [GRADE_KEY]: junk })), null, `通ってしまった: ${junk}`);
+  }
+});
+
+test('学年: 知らない学年は覚えない', () => {
+  const s = memoryStorage();
+  assertEqual(saveGrade('x9', s), false);
+  assertEqual(loadGrade(s), null);
+});
+
+test('学年: localStorage が使えなくても落ちない', () => {
+  assertEqual(loadGrade(throwingStorage()), null);
+  assertEqual(saveGrade('j1', throwingStorage()), false);
+  clearGrade(throwingStorage());
+  assertEqual(loadGrade(null), null);
+  assertEqual(saveGrade('j1', null), false);
+  clearGrade(null);
+});
+
+// --- 学年を分ける前の記録の引き継ぎ ------------------------------------------
+
+test('引き継ぎ: 学年を分ける前の記録が中1のものになる', () => {
+  const old = JSON.stringify(validState());
+  const s = memoryStorage({ [LEGACY_KEY]: old });
+
+  assertEqual(migrateLegacy(s), true);
+  assertDeepEqual(load('j1', s), validState(), 'レベルや持ち越しが引き継がれていない');
+  assertEqual(s.getItem(LEGACY_KEY), null, '古いキーが残っている');
+});
+
+test('引き継ぎ: 一度引き継いだら、消した記録が復活しない', () => {
+  const s = memoryStorage({ [LEGACY_KEY]: JSON.stringify(validState()) });
+
+  migrateLegacy(s);
+  clear('j1', s);
+  migrateLegacy(s);
+
+  assertDeepEqual(load('j1', s), defaultState(), '消したはずの記録が戻ってきた');
+});
+
+test('引き継ぎ: すでに中1の記録があれば上書きしない', () => {
+  const s = memoryStorage({
+    [LEGACY_KEY]: JSON.stringify({ ...validState(), level: 1 }),
+    [KEY]: JSON.stringify({ ...validState(), level: 5 })
+  });
+
+  migrateLegacy(s);
+  assertEqual(load('j1', s).level, 5, '新しい記録が古い記録で上書きされた');
+});
+
+test('引き継ぎ: 引き継ぐものが無ければ何もしない', () => {
+  const s = memoryStorage();
+  assertEqual(migrateLegacy(s), false);
+  assertDeepEqual(s._dump(), {});
+});
+
+test('引き継ぎ: localStorage が使えなくても落ちない', () => {
+  assertEqual(migrateLegacy(throwingStorage()), false);
+  assertEqual(migrateLegacy(null), false);
 });

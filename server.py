@@ -8,7 +8,8 @@
   2. POST /_log を受け取って study-log.csv に1行追記する
 
 2 は保護者が学習量を確認するためのもので、記録するのは
-「日付 / 選んだ時間 / 解いた問題数」だけ。正誤や点数は受け取らない。
+「日付 / 学年 / 選んだ時間 / 解いた問題数」だけ。正誤や点数は受け取らない。
+子どもが3人いて端末も別なので、どの子の分かが分かるよう学年も残す。
 
 自宅の LAN 内でだけ動かす前提。インターネットに公開しないこと。
 GitHub Pages に置いた場合、この口は存在しないので記録は残らない
@@ -26,7 +27,11 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 HERE = os.path.dirname(os.path.abspath(__file__))
 LOG_PATH = os.path.join(HERE, 'study-log.csv')
 LOG_ENDPOINT = '/_log'
-FIELDS = ['date', 'minutes', 'solved']
+FIELDS = ['date', 'grade', 'minutes', 'solved']
+OLD_FIELDS = ['date', 'minutes', 'solved']
+
+# アプリは学年を id で送ってくる。CSV には読める形で書く。
+GRADE_LABELS = {'e5': '小5', 'j1': '中1', 'j3': '中3'}
 
 MAX_BODY = 1024          # 受け取る本文の上限
 DATE_RE = re.compile(r'^\d{4}-\d{2}-\d{2}$')
@@ -54,17 +59,59 @@ def clean(record):
     if minutes == int(minutes):
         minutes = int(minutes)
 
-    return {'date': date, 'minutes': minutes, 'solved': solved}
+    # 学年は分からなくても記録は残す（古い版のアプリから届くこともある）
+    grade = GRADE_LABELS.get(record.get('grade'), '')
+
+    return {'date': date, 'grade': grade, 'minutes': minutes, 'solved': solved}
 
 
 def append(row):
     """CSV に1行足す。見出しが無ければ先に書く。"""
     is_new = not os.path.exists(LOG_PATH) or os.path.getsize(LOG_PATH) == 0
     with open(LOG_PATH, 'a', newline='', encoding='utf-8') as f:
+        if is_new:
+            # Excel が日本語を化けさせないよう、作るときだけ BOM を置く
+            f.write('﻿')
         writer = csv.DictWriter(f, fieldnames=FIELDS)
         if is_new:
             writer.writeheader()
         writer.writerow(row)
+
+
+def upgrade_log():
+    """学年の列が無い古い CSV を、1度だけ新しい形に書き換える。
+
+    元のファイルは .bak に残す。行は1行も捨てず、学年だけ空にする。
+    失敗したら何もせず、そのまま起動する（記録が取れなくなるより軽い）。
+    """
+    if not os.path.exists(LOG_PATH) or os.path.getsize(LOG_PATH) == 0:
+        return
+
+    try:
+        with open(LOG_PATH, newline='', encoding='utf-8-sig') as f:
+            rows = list(csv.reader(f))
+    except (OSError, UnicodeDecodeError):
+        return
+
+    if not rows or rows[0] != OLD_FIELDS:
+        return  # すでに新しい形（か、見覚えのない形）なので触らない
+
+    backup = LOG_PATH + '.bak'
+    try:
+        os.replace(LOG_PATH, backup)
+        with open(LOG_PATH, 'w', newline='', encoding='utf-8') as f:
+            f.write('﻿')
+            writer = csv.writer(f)
+            writer.writerow(FIELDS)
+            for row in rows[1:]:
+                if len(row) != len(OLD_FIELDS):
+                    continue
+                writer.writerow([row[0], '', row[1], row[2]])
+    except OSError as err:
+        print(f'  記録の書き換えに失敗しました: {err}')
+        return
+
+    print(f'  記録に学年の列を足しました（元のファイル: {backup}）')
 
 
 class Handler(SimpleHTTPRequestHandler):
@@ -100,7 +147,10 @@ class Handler(SimpleHTTPRequestHandler):
             self.send_error(500)
             return
 
-        self.log_message('記録: %s %s分 %s問', row['date'], row['minutes'], row['solved'])
+        self.log_message(
+            '記録: %s %s %s分 %s問',
+            row['date'], row['grade'] or '学年なし', row['minutes'], row['solved']
+        )
         self.send_response(204)
         self.end_headers()
 
@@ -124,6 +174,8 @@ def main():
             port = int(sys.argv[1])
         except ValueError:
             pass
+
+    upgrade_log()
 
     handler = functools.partial(Handler, directory=HERE)
     try:

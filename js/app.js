@@ -15,22 +15,31 @@
 //   レベル / 正答率 / 連続日数 / 累計学習時間 / 前回の点数
 
 import { createRng, randomSeed } from './lib/rng.js';
-import { generate } from './generators/index.js';
 import { createKeypad, forDisplay } from './keypad.js';
 import { STEP, nextStep, retrySpec, easierSpec } from './recovery.js';
 import { explanationFor } from './explain.js';
 import { createCarryOverQueue, MAX_AT_SESSION_START } from './carryover.js';
 import { createTimer, remainingLabel } from './timer.js';
 import { createLevelController } from './level.js';
-import { load, save, clear, defaultState } from './storage.js';
+import { GRADES, isGrade, gradeLabel } from './profile.js';
+import { courseFor, isCourseReady } from './courses.js';
+import {
+  load, save, clear, defaultState,
+  loadGrade, saveGrade, migrateLegacy
+} from './storage.js';
 
 const params = new URLSearchParams(location.search);
 
 // --- 開発用のパラメータ（本番の操作では使わない） -------------------------
+//   ?grade=j1    学年を指定して起動する（この指定では学年を覚えない）
 //   ?level=1..5  レベルを固定する（自動調整を止める）
 //   ?minutes=1   時間ボタンの値を上書きする（時間切れの確認用）
-//   ?reset=1     保存内容を消して起動する
+//   ?reset=1     その学年の保存内容を消して起動する
 //   ?newday=1    「今日はまだやっていない」状態にして起動する（持ち越し表示の確認用）
+const GRADE_OVERRIDE = (() => {
+  const raw = params.get('grade');
+  return isGrade(raw) ? raw : null;
+})();
 const LEVEL_OVERRIDE = (() => {
   const raw = Number(params.get('level'));
   return Number.isInteger(raw) && raw >= 1 && raw <= 5 ? raw : null;
@@ -43,12 +52,16 @@ const MINUTES_OVERRIDE = (() => {
 const FLASH_MS = 600;
 
 // 学習量を自宅 PC のサーバーに残すための宛先（保護者が確認するため）。
-// 送るのは 日付 / 選んだ時間 / 解いた問題数 だけ。正誤も点数も送らない。
+// 送るのは 日付 / 学年 / 選んだ時間 / 解いた問題数 だけ。正誤も点数も送らない。
+// 3人が別々の端末で使うので、どの子の分かが分かるよう学年も一緒に送る。
 // 宛先は同じ配信元の相対パスのみ。外部には一切送らない。
 // サーバーが応答しないとき（オフライン、GitHub Pages など）は黙って諦める。
 const LOG_ENDPOINT = './_log';
 
 const el = {
+  grade: document.getElementById('screen-grade'),
+  grades: document.getElementById('grades'),
+  gradeTag: document.getElementById('gradeTag'),
   home: document.getElementById('screen-home'),
   practice: document.getElementById('screen-practice'),
   done: document.getElementById('screen-done'),
@@ -78,25 +91,44 @@ const el = {
 // --- 保存内容の読み込み ---------------------------------------------------
 // load() は何が起きても必ず使える状態を返す。ここで落ちることはない。
 
-const stored = (() => {
-  if (params.get('reset') === '1') {
-    clear();
-    return defaultState();
-  }
-  const s = load();
-  if (params.get('newday') === '1') s.sessions = [];
-  return s;
-})();
+// 学年を分ける前に保存されていた記録を、中1のものとして引き継ぐ。
+// 娘がすでに使っているレベルと持ち越しを、ここで失わないようにする。
+migrateLegacy();
 
 const rng = createRng(randomSeed());
-const queue = createCarryOverQueue(stored.carryOver);
-const sessions = stored.sessions;
-const levels = createLevelController({
-  level: LEVEL_OVERRIDE || stored.level,
-  history: stored.history,
-  sinceJudge: stored.sinceJudge,
-  pinned: Boolean(LEVEL_OVERRIDE)
-});
+
+// 選ばれている学年と、その学年ぶんの記録。学年を選び直すと丸ごと入れ替わる。
+let grade = null;
+let course = null;
+let stored = defaultState();
+let queue = createCarryOverQueue([]);
+let sessions = [];
+let levels = createLevelController({ level: 1, history: [], sinceJudge: 0 });
+
+/** 学年を1つ決めて、その学年ぶんの記録を読み込む。他の学年には触らない。 */
+function applyGrade(next) {
+  grade = next;
+  course = courseFor(next);
+
+  if (params.get('reset') === '1') {
+    clear(grade);
+    stored = defaultState();
+  } else {
+    stored = load(grade);
+    if (params.get('newday') === '1') stored.sessions = [];
+  }
+
+  queue = createCarryOverQueue(stored.carryOver);
+  sessions = stored.sessions;
+  levels = createLevelController({
+    level: LEVEL_OVERRIDE || stored.level,
+    history: stored.history,
+    sinceJudge: stored.sinceJudge,
+    pinned: Boolean(LEVEL_OVERRIDE)
+  });
+
+  el.gradeTag.textContent = gradeLabel(grade);
+}
 
 /**
  * いまの状態をまるごと保存する。失敗しても何も起きない。
@@ -105,13 +137,14 @@ const levels = createLevelController({
  * 開発用に覗いただけで、本来の学習の記録が上書きされてしまうため。
  */
 function persist() {
+  if (!grade) return;
   save({
     level: LEVEL_OVERRIDE ? stored.level : levels.getLevel(),
     sinceJudge: levels.getSinceJudge(),
     history: levels.getHistory(),
     carryOver: queue.list(),
     sessions
-  });
+  }, grade);
 }
 
 const state = {
@@ -140,6 +173,7 @@ const keypad = createKeypad({
 // --- 画面 -----------------------------------------------------------------
 
 function showScreen(name) {
+  el.grade.classList.toggle('active', name === 'grade');
   el.home.classList.toggle('active', name === 'home');
   el.practice.classList.toggle('active', name === 'practice');
   el.done.classList.toggle('active', name === 'done');
@@ -201,6 +235,48 @@ function hasSessionToday() {
   return sessions.some((s) => s.date === todayKey());
 }
 
+// --- 学年えらび -----------------------------------------------------------
+
+/**
+ * 学年のボタンを組み立てる。
+ * まだ問題を作れない学年も、押せない形で並べておく
+ * （あとから足したときに、押す場所が動かないようにするため）。
+ */
+function buildGradeButtons() {
+  el.grades.innerHTML = '';
+
+  for (const g of GRADES) {
+    const ready = isCourseReady(g.id);
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'grade';
+    btn.dataset.grade = g.id;
+    btn.textContent = g.label;
+
+    if (!ready) {
+      btn.disabled = true;
+      const note = document.createElement('span');
+      note.textContent = 'じゅんび中';
+      btn.appendChild(note);
+    } else {
+      btn.addEventListener('click', () => chooseGrade(g.id));
+    }
+
+    el.grades.appendChild(btn);
+  }
+}
+
+function chooseGrade(next) {
+  // ?grade= で覗いているだけのときは、この端末の学年を書き換えない
+  if (!GRADE_OVERRIDE) saveGrade(next);
+  applyGrade(next);
+  showHome();
+}
+
+function showGradePicker() {
+  showScreen('grade');
+}
+
 function showHome() {
   // 持ち越しがあるときだけ、小さく知らせる。
   // その日すでに1回やっていたら出さない（「まだ残ってる」と言われる形を避ける）。
@@ -229,7 +305,7 @@ function specForCurrentStep() {
 function nextProblem() {
   const spec = specForCurrentStep();
 
-  state.current = generate(spec.level, rng, state.recent, {
+  state.current = course.generate(spec.level, rng, state.recent, {
     pattern: spec.pattern,
     form: spec.form,
     easier: spec.easier
@@ -388,6 +464,7 @@ function logSession() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         date: todayKey(),
+        grade: grade,
         minutes: state.minutes,
         solved: state.solved
       }),
@@ -521,6 +598,9 @@ el.quitFromPauseBtn.addEventListener('click', finish);
 
 el.homeBtn.addEventListener('click', goHome);
 
+// 学年を選び直す。押し間違えたときのための出口なので、確認は挟まない。
+el.gradeTag.addEventListener('click', showGradePicker);
+
 // アプリが閉じられる直前にも一度だけ保存しておく。
 // 終了画面まで行かずに閉じられた回も、そこまでの分を記録しておく
 // （記録に残らないと「何もしていない」と読めてしまうため）。
@@ -539,5 +619,17 @@ if ('serviceWorker' in navigator) {
 }
 
 // --- 起動 -----------------------------------------------------------------
+//
+// 学年が決まっていれば、そのままホームへ（毎回選ばせない）。
+// 決まっていないのは初回だけなので、そのときだけ学年えらびを出す。
 
-showHome();
+buildGradeButtons();
+
+const bootGrade = GRADE_OVERRIDE || loadGrade();
+
+if (bootGrade && isCourseReady(bootGrade)) {
+  applyGrade(bootGrade);
+  showHome();
+} else {
+  showGradePicker();
+}

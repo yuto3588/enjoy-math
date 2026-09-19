@@ -23,9 +23,18 @@
 
 <div id="app">
 
+  <!-- 学年えらび（この端末を誰が使うか。初回だけ出る） -->
+  <section class="screen" id="screen-grade">
+    <div class="home">
+      <p class="ask">学年は？</p>
+      <div class="grades" id="grades"></div>
+    </div>
+  </section>
+
   <!-- ホーム画面 -->
   <section class="screen" id="screen-home">
     <div class="home">
+      <button type="button" class="grade-tag" id="gradeTag"></button>
       <p class="ask">今日は何分やる？</p>
       <div class="times">
         <button type="button" class="time" data-min="10">10<span>分</span></button>

@@ -29,10 +29,16 @@ const SIZES = [
   { name: '横向き', w: 844, h: 390 }
 ];
 
-const STORAGE_KEY = 'math-practice';
+// 学習の記録は学年ごとに分かれている。ここでは中1で測る。
+const STORAGE_KEY = 'math-practice:j1';
 
-/** 指定サイズで index.html を読み込み、測ってから片付ける。 */
-async function measure(width, height) {
+/**
+ * 指定サイズで index.html を読み込み、測ってから片付ける。
+ *
+ * url を渡さなければ中1で開く。学年を指定しないと初回は学年えらびが出て、
+ * ホームや問題画面まで進まないため。
+ */
+async function measure(width, height, url = './index.html?level=5&grade=j1') {
   const frame = document.createElement('iframe');
   frame.setAttribute('title', 'layout probe');
   frame.style.cssText =
@@ -43,7 +49,7 @@ async function measure(width, height) {
     await new Promise((resolve, reject) => {
       frame.addEventListener('load', resolve, { once: true });
       frame.addEventListener('error', () => reject(new Error('読み込めない')), { once: true });
-      frame.src = './index.html?level=5';
+      frame.src = url;
     });
 
     const win = frame.contentWindow;
@@ -150,6 +156,124 @@ test('レイアウト: どの画面サイズでもスクロールが出ない', 
   } finally {
     if (saved === null) localStorage.removeItem(STORAGE_KEY);
     else localStorage.setItem(STORAGE_KEY, saved);
+  }
+});
+
+test('レイアウト: 学年えらびがどの画面サイズでも収まる', async () => {
+  if (!canRun) return;
+
+  // 学年が決まっていない状態（初回起動）を作る。
+  // iframe は同じ localStorage を見るので、測ったあと元に戻す。
+  const GRADE_KEY = 'math-practice:grade';
+  const saved = localStorage.getItem(GRADE_KEY);
+  localStorage.removeItem(GRADE_KEY);
+
+  try {
+    for (const size of SIZES) {
+      const where = `${size.name}（${size.w}x${size.h}）`;
+      const m = await measureGradePicker(size.w, size.h);
+
+      assert(m.count === 3, `${where}: 学年のボタンが3つ出ていない（${m.count}）`);
+      assert(m.lowest <= size.h + 1, `${where}: 学年のボタンが画面から出ている`);
+      assert(m.minHeight >= 47.5, `${where}: 学年のボタンの高さが足りない（${Math.round(m.minHeight)}px）`);
+      assert(m.minWidth >= 47.5, `${where}: 学年のボタンの幅が足りない（${Math.round(m.minWidth)}px）`);
+      assert(!m.overflowY, `${where}: 学年えらびが縦にスクロールする`);
+      assert(!m.overflowX, `${where}: 学年えらびが横にスクロールする`);
+    }
+  } finally {
+    if (saved === null) localStorage.removeItem(GRADE_KEY);
+    else localStorage.setItem(GRADE_KEY, saved);
+  }
+});
+
+/** 学年えらびの画面だけを測る。 */
+async function measureGradePicker(width, height) {
+  const frame = document.createElement('iframe');
+  frame.setAttribute('title', 'grade probe');
+  frame.style.cssText =
+    `position:fixed; left:-10000px; top:0; border:0; width:${width}px; height:${height}px;`;
+  document.body.appendChild(frame);
+
+  try {
+    await new Promise((resolve, reject) => {
+      frame.addEventListener('load', resolve, { once: true });
+      frame.addEventListener('error', () => reject(new Error('読み込めない')), { once: true });
+      frame.src = './index.html';
+    });
+
+    const doc = frame.contentDocument;
+    for (let i = 0; i < 100 && doc.querySelectorAll('.grade').length === 0; i++) {
+      await new Promise((r) => setTimeout(r, 20));
+    }
+
+    assert(
+      doc.getElementById('screen-grade').classList.contains('active'),
+      '学年が決まっていないのに学年えらびが出ていない'
+    );
+
+    const rects = [...doc.querySelectorAll('.grade')].map((b) => b.getBoundingClientRect());
+    const root = doc.documentElement;
+    return {
+      count: rects.length,
+      lowest: Math.max(...rects.map((r) => r.bottom)),
+      minHeight: Math.min(...rects.map((r) => r.height)),
+      minWidth: Math.min(...rects.map((r) => r.width)),
+      overflowY: root.scrollHeight > root.clientHeight,
+      overflowX: root.scrollWidth > root.clientWidth
+    };
+  } finally {
+    frame.remove();
+  }
+}
+
+test('学年: 選び直しても、他の学年の記録に触らない', async () => {
+  if (!canRun) return;
+
+  // 上の子が使っている端末で下の子が触っても、記録が混ざらないこと。
+  const KEY_J3 = 'math-practice:j3';
+  const savedJ1 = localStorage.getItem(STORAGE_KEY);
+  const savedJ3 = localStorage.getItem(KEY_J3);
+  const GRADE_KEY = 'math-practice:grade';
+  const savedGrade = localStorage.getItem(GRADE_KEY);
+
+  const marker = {
+    version: 1, level: 5, sinceJudge: 4,
+    history: [], carryOver: [{ pattern: 'order_of_ops', level: 5, misses: 2 }],
+    sessions: [{ date: '2026-09-17', minutes: 30, solved: 12 }]
+  };
+
+  try {
+    localStorage.setItem(KEY_J3, JSON.stringify(marker));
+    await measure(375, 555); // 中1で一通り動かす
+
+    assert(
+      localStorage.getItem(KEY_J3) === JSON.stringify(marker),
+      '中1で動かしたのに、中3の記録が書き換わった'
+    );
+  } finally {
+    for (const [k, v] of [[STORAGE_KEY, savedJ1], [KEY_J3, savedJ3], [GRADE_KEY, savedGrade]]) {
+      if (v === null) localStorage.removeItem(k);
+      else localStorage.setItem(k, v);
+    }
+  }
+});
+
+test('学年: ?grade= で覗いても、この端末の学年を書き換えない', async () => {
+  if (!canRun) return;
+
+  const GRADE_KEY = 'math-practice:grade';
+  const saved = localStorage.getItem(GRADE_KEY);
+
+  try {
+    localStorage.removeItem(GRADE_KEY);
+    await measure(375, 555); // ?grade=j1 で開く
+    assert(
+      localStorage.getItem(GRADE_KEY) === null,
+      '開発用に開いただけで、学年が覚えられてしまった'
+    );
+  } finally {
+    if (saved === null) localStorage.removeItem(GRADE_KEY);
+    else localStorage.setItem(GRADE_KEY, saved);
   }
 });
 
