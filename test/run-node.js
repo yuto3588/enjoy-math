@@ -11,6 +11,7 @@ import './timer.test.js';
 import './storage.test.js';
 import './level.test.js';
 import './pwa.test.js';
+import './layout.test.js';
 import { runAll } from './runner.js';
 
 const { failed } = await runAll(null);

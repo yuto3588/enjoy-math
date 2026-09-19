@@ -89,10 +89,15 @@ const levels = createLevelController({
   pinned: Boolean(LEVEL_OVERRIDE)
 });
 
-/** いまの状態をまるごと保存する。失敗しても何も起きない。 */
+/**
+ * いまの状態をまるごと保存する。失敗しても何も起きない。
+ *
+ * ?level= でレベルを固定して開いているときは、そのレベルを保存しない。
+ * 開発用に覗いただけで、本来の学習の記録が上書きされてしまうため。
+ */
 function persist() {
   save({
-    level: levels.getLevel(),
+    level: LEVEL_OVERRIDE ? stored.level : levels.getLevel(),
     sinceJudge: levels.getSinceJudge(),
     history: levels.getHistory(),
     carryOver: queue.list(),

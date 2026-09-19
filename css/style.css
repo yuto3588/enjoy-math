@@ -23,6 +23,10 @@
 
   --tap: 48px;
   --gap: 8px;
+
+  /* キーが 48px を割らずに 4段 並ぶのに要る高さ。
+     テンキーの高さの下限に使う。 */
+  --keypad-min: calc(var(--tap) * 4 + var(--gap) * 5 + 4px);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -254,11 +258,16 @@ body {
   border-bottom: 2px solid var(--line);
   color: var(--fg);
 }
+/* 何も入っていないときに、入力される場所を控えめに示す。
+   点滅はさせない（気が散るため）。 */
 .answer:empty::before {
   content: "";
   display: block;
-  width: 1px;
-  height: 34px;
+  width: 2px;
+  height: 32px;
+  border-radius: 1px;
+  background: var(--accent);
+  opacity: .35;
 }
 
 /* ------------------------------------------------------------------
@@ -273,7 +282,10 @@ body {
   grid-template-rows: repeat(4, minmax(var(--tap), 1fr));
   gap: var(--gap);
   padding: var(--gap) 12px calc(var(--gap) + 4px);
-  max-height: 42vh;
+  /* 高さは画面に応じて伸び縮みさせるが、キーが 48px を割る高さには絶対にしない。
+     ここを max-height で押さえつけると、画面の低い端末で下の段が切れて
+     「決定」が押せなくなる。 */
+  height: clamp(var(--keypad-min), 40vh, 300px);
 }
 
 .key {
@@ -447,3 +459,57 @@ body {
 .done h1 { font-size: 28px; font-weight: 600; margin: 0; }
 .done p { font-size: 16px; color: var(--muted); margin: 0 0 18px; }
 .done .wide { max-width: 220px; }
+
+/* ------------------------------------------------------------------
+   横向き
+   縦持ちが前提だが、回してしまったときに下の段が切れて
+   「決定」が押せなくなるのは避ける。左に問題、右にテンキーを置く。
+   ------------------------------------------------------------------ */
+
+@media (orientation: landscape) and (max-height: 540px) {
+  #screen-practice.active {
+    display: grid;
+    grid-template-columns: 1fr minmax(272px, 44%);
+    grid-template-rows: auto 1fr;
+    grid-template-areas:
+      "top   top"
+      "stage keypad";
+    min-height: 0;
+  }
+  .topbar { grid-area: top; }
+  .stage {
+    grid-area: stage;
+    min-height: 0;
+    gap: 10px;
+  }
+  .keypad {
+    grid-area: keypad;
+    height: auto;
+    min-height: 0;
+  }
+
+  .question { font-size: clamp(24px, 4.5vw, 36px); }
+  .answer { min-height: 46px; font-size: 28px; }
+  .answer:empty::before { height: 26px; }
+
+  .home { gap: 18px; }
+  .home .ask { font-size: 20px; }
+  .time { min-height: 76px; font-size: 26px; }
+
+  .explain-body { gap: 16px; }
+  .explain .expr { font-size: 24px; }
+  .steps { gap: 8px; }
+  .steps li { font-size: 16px; }
+  .explain.message .steps li { font-size: 19px; }
+}
+
+/* ------------------------------------------------------------------
+   動きを減らす設定にしている場合
+   ------------------------------------------------------------------ */
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
