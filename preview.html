@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>問題の目視確認（開発用）</title>
+<style>
+  :root { color-scheme: light dark; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", sans-serif;
+    margin: 0; padding: 16px 16px 40px;
+    line-height: 1.6;
+    -webkit-text-size-adjust: 100%;
+  }
+  h1 { font-size: 18px; margin: 0 0 4px; }
+  .note { font-size: 13px; opacity: .65; margin: 0 0 14px; }
+  .bar { display: flex; gap: 8px; align-items: center; margin-bottom: 18px; flex-wrap: wrap; }
+  button {
+    font: inherit; font-size: 15px;
+    min-height: 48px; padding: 0 18px;
+    border-radius: 10px; border: 1px solid currentColor;
+    background: transparent; color: inherit;
+  }
+  h2 { font-size: 15px; margin: 24px 0 8px; opacity: .8; }
+  ol { margin: 0; padding-left: 0; list-style: none; }
+  li {
+    padding: 10px 12px; margin-bottom: 8px;
+    border-radius: 10px;
+    background: rgba(127,127,127,.10);
+  }
+  .q { font-size: 22px; font-weight: 600; letter-spacing: .02em; }
+  .a { font-size: 22px; font-weight: 600; opacity: .75; }
+  .row { display: flex; align-items: baseline; gap: 12px; }
+  .meta { font-size: 11px; opacity: .55; margin-left: auto; font-family: ui-monospace, monospace; }
+  .steps { font-size: 13px; margin: 6px 0 0; padding-left: 1.2em; opacity: .85; }
+  .traps { font-size: 12px; opacity: .6; margin-top: 4px; font-family: ui-monospace, monospace; }
+  .err { color: #b3261e; font-size: 12px; font-weight: 700; }
+  nav { margin-top: 24px; font-size: 14px; }
+</style>
+</head>
+<body>
+  <h1>生成された問題の目視確認</h1>
+  <p class="note">難しすぎ / 簡単すぎと感じたら、数値範囲を調整します。</p>
+  <div class="bar">
+    <button id="reroll">別の問題を出す</button>
+    <span class="note" id="seedLabel"></span>
+  </div>
+  <div id="out"></div>
+  <nav><a href="./tests.html">← 単体テストへ</a></nav>
+
+<script type="module">
+  import { createRng, randomSeed } from './js/lib/rng.js';
+  import { generate, SUPPORTED_LEVELS } from './js/generators/index.js';
+  import { validateProblem } from './js/lib/problem.js';
+  import { forDisplay } from './js/keypad.js';
+
+  const PER_LEVEL = 16;
+  const out = document.getElementById('out');
+  const seedLabel = document.getElementById('seedLabel');
+
+  function render(seed) {
+    seedLabel.textContent = `seed: ${seed}`;
+    out.innerHTML = '';
+
+    for (const level of SUPPORTED_LEVELS) {
+      const rng = createRng(seed + level * 1000);
+      const recent = [];
+
+      const h = document.createElement('h2');
+      h.textContent = `Lv${level}`;
+      out.appendChild(h);
+
+      const ol = document.createElement('ol');
+      for (let i = 0; i < PER_LEVEL; i++) {
+        const p = generate(level, rng, recent);
+        recent.push(p);
+        if (recent.length > 3) recent.shift();
+        ol.appendChild(renderProblem(p));
+      }
+      out.appendChild(ol);
+    }
+  }
+
+  function renderProblem(p) {
+    const li = document.createElement('li');
+
+    const row = document.createElement('div');
+    row.className = 'row';
+    row.innerHTML =
+      `<span class="q"></span><span class="a"></span><span class="meta"></span>`;
+    // 実際の画面と同じ見え方（−、上付きの累乗）で確認する
+    row.querySelector('.q').textContent = forDisplay(p.question) + ' =';
+    row.querySelector('.a').textContent = forDisplay(p.answer);
+    row.querySelector('.meta').textContent = `${p.pattern} / ${p.form}`;
+    li.appendChild(row);
+
+    const ul = document.createElement('ul');
+    ul.className = 'steps';
+    for (const s of p.steps) {
+      const item = document.createElement('li');
+      item.style.background = 'none';
+      item.style.padding = '0';
+      item.style.margin = '0';
+      item.style.listStyle = 'disc';
+      item.textContent = forDisplay(s);
+      ul.appendChild(item);
+    }
+    li.appendChild(ul);
+
+    const traps = document.createElement('div');
+    traps.className = 'traps';
+    traps.textContent = 'traps: ' + p.traps.map((t) => `${t.value} (${t.reason})`).join(' / ');
+    li.appendChild(traps);
+
+    const errors = validateProblem(p);
+    if (errors.length) {
+      const e = document.createElement('div');
+      e.className = 'err';
+      e.textContent = '不変条件違反: ' + errors.join(' / ');
+      li.appendChild(e);
+    }
+    return li;
+  }
+
+  document.getElementById('reroll').addEventListener('click', () => render(randomSeed()));
+  render(randomSeed());
+</script>
+</body>
+</html>

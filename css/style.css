@@ -1,0 +1,449 @@
+/* ------------------------------------------------------------------
+   配色
+   「教育」トーン（青・緑）を避け、暖色のニュートラルでまとめる。
+   ダークモードは OS 設定に追従する（アプリ内に切替は置かない）。
+   ------------------------------------------------------------------ */
+
+:root {
+  color-scheme: light dark;
+
+  --bg: #faf6f2;
+  --fg: #2a2521;
+  --muted: #8b8179;
+  --line: #e7ded6;
+
+  --key-bg: #ffffff;
+  --key-border: #e4dbd3;
+  --key-press: #f0e8e1;
+
+  --accent: #c25f45;
+  --accent-soft: rgba(194, 95, 69, 0.12);
+
+  --panel: #ffffff;
+
+  --tap: 48px;
+  --gap: 8px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1b1815;
+    --fg: #f1ebe5;
+    --muted: #9a8f85;
+    --line: #352f2a;
+
+    --key-bg: #2a2421;
+    --key-border: #3a332e;
+    --key-press: #3b332e;
+
+    --accent: #e08a70;
+    --accent-soft: rgba(224, 138, 112, 0.16);
+
+    --panel: #241f1c;
+  }
+}
+
+/* ------------------------------------------------------------------
+   土台
+   iPhone 縦持ちでスクロールを一切発生させない。
+   position: fixed でラバーバンド（引っぱると跳ねる動き）も殺す。
+   ------------------------------------------------------------------ */
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+body {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", sans-serif;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+#app {
+  height: 100%;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  padding:
+    env(safe-area-inset-top)
+    env(safe-area-inset-right)
+    env(safe-area-inset-bottom)
+    env(safe-area-inset-left);
+}
+
+.screen {
+  flex: 1;
+  min-height: 0;
+  display: none;
+  flex-direction: column;
+}
+.screen.active { display: flex; }
+
+/* ------------------------------------------------------------------
+   問題画面
+   ------------------------------------------------------------------ */
+
+/* ------------------------------------------------------------------
+   ホーム画面
+   出すのは問いかけと時間ボタンだけ。
+   累計時間・連続日数・レベル・正答率・前回の点数は一切置かない。
+   ------------------------------------------------------------------ */
+
+.home {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  padding: 24px 16px;
+}
+
+.home .ask {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+/* 3つのボタンは視覚的に完全に同格。10分を左端に置く。
+   どれかを推奨として強調しない（30分を大きくしない・色を変えない）。 */
+.times {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  max-width: 400px;
+}
+.time {
+  -webkit-appearance: none;
+  appearance: none;
+  flex: 1 1 0;
+  min-width: var(--tap);
+  min-height: 92px;
+  border: 1px solid var(--key-border);
+  border-radius: 14px;
+  background: var(--key-bg);
+  color: var(--fg);
+  font-family: inherit;
+  font-size: 30px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  touch-action: manipulation;
+  cursor: pointer;
+  transition: background-color .08s ease, transform .08s ease;
+}
+.time:active { background: var(--key-press); transform: scale(.97); }
+.time > span { font-size: 15px; font-weight: 500; margin-left: 1px; }
+
+/* 持ち越しの一言。責める書き方をしない。件数以外は出さない。 */
+.carry {
+  margin: 0;
+  min-height: 20px;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+/* ------------------------------------------------------------------
+   問題画面
+   ------------------------------------------------------------------ */
+
+.topbar {
+  flex: 0 0 auto;
+  padding: 0 12px;
+}
+
+.topbar-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-bottom: 6px;
+}
+.topbar-row .spacer { flex: 1; }
+
+/* 残り時間は分だけ。秒は刻まない。 */
+.remain {
+  padding-left: 4px;
+  font-size: 13px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.link {
+  -webkit-appearance: none;
+  appearance: none;
+  min-width: var(--tap);
+  min-height: var(--tap);
+  padding: 0 10px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 14px;
+  touch-action: manipulation;
+  cursor: pointer;
+}
+.link:active { opacity: .6; }
+
+/* 進捗は「○問目」ではなく細いバーのみ。数字は出さない。 */
+.progress {
+  height: 3px;
+  border-radius: 2px;
+  background: var(--line);
+  overflow: hidden;
+}
+.progress > i {
+  display: block;
+  height: 100%;
+  width: 0%;
+  background: var(--accent);
+  opacity: .55;
+  transition: width .35s ease;
+}
+
+.stage {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding: 8px 16px;
+  transition: background-color .18s ease;
+}
+
+/* 正解時のフィードバック。文字は出さず、0.6秒だけ色が動く。 */
+.stage.flash { background: var(--accent-soft); }
+
+/* 式は必ず1行に収める。途中で折り返すと式として読めなくなるため、
+   長い式は app.js 側で文字サイズを段階的に下げる。 */
+.question {
+  width: 100%;
+  font-size: clamp(30px, 10vw, 44px);
+  font-weight: 600;
+  letter-spacing: .02em;
+  text-align: center;
+  line-height: 1.25;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.answer {
+  min-width: 140px;
+  min-height: 56px;
+  padding: 6px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 34px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  border-bottom: 2px solid var(--line);
+  color: var(--fg);
+}
+.answer:empty::before {
+  content: "";
+  display: block;
+  width: 1px;
+  height: 34px;
+}
+
+/* ------------------------------------------------------------------
+   自作テンキー
+   iOS のソフトキーボードを出さないため、input 要素を一切使わない。
+   ------------------------------------------------------------------ */
+
+.keypad {
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(4, minmax(var(--tap), 1fr));
+  gap: var(--gap);
+  padding: var(--gap) 12px calc(var(--gap) + 4px);
+  max-height: 42vh;
+}
+
+.key {
+  -webkit-appearance: none;
+  appearance: none;
+  min-width: var(--tap);
+  min-height: var(--tap);
+  border: 1px solid var(--key-border);
+  border-radius: 12px;
+  background: var(--key-bg);
+  color: var(--fg);
+  font-family: inherit;
+  font-size: 24px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  touch-action: manipulation;
+  cursor: pointer;
+  transition: background-color .08s ease, transform .08s ease;
+}
+.key:active { background: var(--key-press); transform: scale(.97); }
+.key[disabled] { opacity: .35; }
+
+.key.fn { font-size: 20px; color: var(--muted); }
+.key.submit {
+  grid-column: 4;
+  grid-row: 3 / span 2;
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  font-size: 17px;
+  font-weight: 600;
+}
+.key.zero { grid-column: 1 / span 3; grid-row: 4; }
+
+/* ------------------------------------------------------------------
+   解説パネル（誤答時）
+   評価語を出さない。今解いたこの問題の手順だけを 3 行以内で出す。
+   ------------------------------------------------------------------ */
+
+.explain {
+  position: absolute;
+  inset: 0;
+  display: none;
+  flex-direction: column;
+  background: var(--bg);
+  padding:
+    calc(env(safe-area-inset-top) + 16px)
+    calc(env(safe-area-inset-right) + 20px)
+    calc(env(safe-area-inset-bottom) + 16px)
+    calc(env(safe-area-inset-left) + 20px);
+}
+.explain.active { display: flex; }
+
+.explain-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 28px;
+}
+
+.explain .expr {
+  font-size: 30px;
+  font-weight: 600;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.explain .expr:empty { display: none; }
+
+/* 持ち越しの一言だけを出すとき。番号を消して中央に大きく置く。 */
+.explain.message .steps li { justify-content: center; font-size: 22px; }
+.explain.message .steps li > span.n { display: none; }
+
+.steps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.steps li {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  font-size: 18px;
+  line-height: 1.5;
+}
+.steps li > span.n {
+  flex: 0 0 26px;
+  height: 26px;
+  margin-top: 2px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.wide {
+  flex: 0 0 auto;
+  width: 100%;
+  min-height: 56px;
+  border: 1px solid var(--accent);
+  border-radius: 12px;
+  background: var(--accent);
+  color: #fff;
+  font-family: inherit;
+  font-size: 17px;
+  font-weight: 600;
+  touch-action: manipulation;
+  cursor: pointer;
+}
+.wide:active { opacity: .85; }
+.wide.ghost {
+  background: transparent;
+  color: var(--muted);
+  border-color: var(--line);
+}
+
+/* ------------------------------------------------------------------
+   休憩パネル
+   席を離れられることが継続の条件なので、引き止める文言を置かない。
+   ------------------------------------------------------------------ */
+
+.pause {
+  position: absolute;
+  inset: 0;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  background: var(--bg);
+  padding:
+    calc(env(safe-area-inset-top) + 20px)
+    calc(env(safe-area-inset-right) + 20px)
+    calc(env(safe-area-inset-bottom) + 20px)
+    calc(env(safe-area-inset-left) + 20px);
+}
+.pause.active { display: flex; }
+
+.pause-title { margin: 0; font-size: 22px; font-weight: 600; }
+.pause-actions {
+  width: 100%;
+  max-width: 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ------------------------------------------------------------------
+   終了画面
+   やった問題数だけ。正答率・レベル・比較・次回の目標は出さない。
+   10分の日と60分の日で文言を変えない。
+   ------------------------------------------------------------------ */
+
+.done {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 20px;
+}
+.done h1 { font-size: 28px; font-weight: 600; margin: 0; }
+.done p { font-size: 16px; color: var(--muted); margin: 0 0 18px; }
+.done .wide { max-width: 220px; }

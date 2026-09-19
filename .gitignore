@@ -1,0 +1,10 @@
+# 設計・運用のメモは公開リポジトリに入れない。
+# GitHub Pages を無料で使うにはリポジトリが公開になるため、
+# 個人にまつわる記述を含むファイルはここで外している。
+CLAUDE.md
+DESIGN.md
+
+# OS / OneDrive が勝手に作るもの
+Thumbs.db
+desktop.ini
+.DS_Store

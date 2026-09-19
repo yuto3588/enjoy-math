@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>テスト（開発用）</title>
+<style>
+  :root { color-scheme: light dark; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", sans-serif;
+    margin: 0;
+    padding: 16px;
+    line-height: 1.6;
+    -webkit-text-size-adjust: 100%;
+  }
+  h1 { font-size: 18px; margin: 0 0 4px; }
+  .note { font-size: 13px; opacity: .65; margin: 0 0 16px; }
+  .summary {
+    font-size: 17px; font-weight: 700;
+    padding: 12px 14px; border-radius: 10px; margin-bottom: 12px;
+  }
+  .summary.ok { background: #1f7a3f; color: #fff; }
+  .summary.ng { background: #b3261e; color: #fff; }
+  .case {
+    padding: 8px 12px; border-radius: 8px; margin-bottom: 6px;
+    font-size: 14px; border-left: 4px solid transparent;
+  }
+  .case.ok { border-left-color: #1f7a3f; opacity: .75; }
+  .case.ng { border-left-color: #b3261e; background: rgba(179,38,30,.10); }
+  .case-head { font-weight: 600; }
+  pre {
+    white-space: pre-wrap; word-break: break-word;
+    font-size: 12px; margin: 6px 0 0; opacity: .9;
+  }
+  .running { opacity: .6; }
+  nav { margin-top: 20px; font-size: 14px; }
+</style>
+</head>
+<body>
+  <h1>単体テスト</h1>
+  <p class="note">ジェネレータ / 誤答フロー / 解説の出し分け / 持ち越しキュー</p>
+  <div id="out" class="running">実行中…</div>
+  <nav><a href="./preview.html">生成された問題を見る →</a></nav>
+
+<script type="module">
+  import './test/addsub.test.js';
+  import './test/generators.test.js';
+  import './test/recovery.test.js';
+  import './test/explain.test.js';
+  import './test/carryover.test.js';
+  import './test/timer.test.js';
+  import './test/storage.test.js';
+  import './test/level.test.js';
+  import './test/pwa.test.js';
+  import { runAll } from './test/runner.js';
+
+  const out = document.getElementById('out');
+  try {
+    const { failed } = await runAll(out);
+    out.classList.remove('running');
+    document.title = failed === 0 ? 'テスト: 全パス' : `テスト: ${failed}件失敗`;
+  } catch (err) {
+    out.classList.remove('running');
+    out.innerHTML = '<div class="summary ng">テストの読み込みに失敗</div>';
+    const pre = document.createElement('pre');
+    pre.textContent = String(err && err.stack || err);
+    out.appendChild(pre);
+  }
+</script>
+</body>
+</html>

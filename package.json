@@ -1,0 +1,10 @@
+{
+  "name": "math-practice",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "正負の数の練習アプリ。依存ライブラリなし・ビルドなし。このファイルは node でテストを走らせるための設定のみで、npm install は不要。",
+  "scripts": {
+    "test": "node test/run-node.js"
+  }
+}
