@@ -628,6 +628,7 @@ function goHome() {
 
 for (const btn of document.querySelectorAll('.time')) {
   btn.addEventListener('click', () => {
+    if (!course) return; // 学年が決まる前は何も始めない
     startSession(MINUTES_OVERRIDE || Number(btn.dataset.min));
   });
 }
