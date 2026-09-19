@@ -153,6 +153,19 @@ test('レイアウト: どの画面サイズでもスクロールが出ない', 
   }
 });
 
+test('テストがアプリを動かしても、学習量の記録を汚さない', async () => {
+  if (!canRun) return;
+
+  // このテストは iframe でアプリを何度も動かす。
+  // そのたびに記録が送られると、保護者が見る study-log.csv が
+  // テストの分で埋まって使いものにならなくなる。
+  const src = await fetch('./js/app.js', { cache: 'no-store' }).then((r) => r.text());
+  assert(
+    src.indexOf('window.top !== window.self') >= 0,
+    'iframe で動いているときに記録を止める guard が無い'
+  );
+});
+
 test('開発用の ?level= で開いても、保存された学習の記録を壊さない', async () => {
   if (!canRun) return;
 

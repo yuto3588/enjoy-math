@@ -363,6 +363,12 @@ function onTimeUp() {
  */
 function logSession() {
   if (state.logged || !state.minutes || state.solved <= 0) return;
+
+  // iframe の中で動いているときは記録しない。
+  // 本物のアプリは iframe に入らない。テストがアプリを読み込んで動かすので、
+  // この guard が無いとテストを走らせるたびに記録が増えてしまう。
+  if (window.top !== window.self) return;
+
   state.logged = true;
 
   try {
