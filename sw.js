@@ -12,7 +12,7 @@
 // ファイルを増やしたら PRECACHE にも足すこと。
 // test/pwa.test.js が、追加し忘れていないかを見張っている。
 
-const VERSION = 'v1';
+const VERSION = 'v2';
 const CACHE_NAME = `enjoy-math-${VERSION}`;
 
 const PRECACHE = [
