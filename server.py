@@ -21,6 +21,7 @@ import functools
 import json
 import os
 import re
+import socket
 import sys
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 
@@ -165,6 +166,18 @@ class Server(ThreadingHTTPServer):
     # リクエストがどちらに届くか分からなくなる。
     # 二重起動は「使用中」で明確に失敗させる。
     allow_reuse_address = False
+
+    def server_bind(self):
+        # allow_reuse_address = False だけでは足りない。
+        # 先に立ち上がっているサーバーが SO_REUSEADDR を付けていると、
+        # Windows は同じポートにもう1つ入れてしまう（実際に2台並んだ）。
+        # SO_EXCLUSIVEADDRUSE を付けると、使用中のポートには必ず bind が失敗する。
+        if hasattr(socket, 'SO_EXCLUSIVEADDRUSE'):
+            try:
+                self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
+            except OSError:
+                pass  # 付けられない環境ではそのまま進む
+        super().server_bind()
 
 
 def main():
