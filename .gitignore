@@ -10,6 +10,10 @@ study-log.csv
 # この PC で動かすためだけのもの（アプリ本体には関係ない）
 start-server.bat
 
+# Python が勝手に作るもの
+__pycache__/
+*.pyc
+
 # OS / OneDrive が勝手に作るもの
 Thumbs.db
 desktop.ini
