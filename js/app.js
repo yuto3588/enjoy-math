@@ -42,6 +42,12 @@ const MINUTES_OVERRIDE = (() => {
 
 const FLASH_MS = 600;
 
+// 学習量を自宅 PC のサーバーに残すための宛先（保護者が確認するため）。
+// 送るのは 日付 / 選んだ時間 / 解いた問題数 だけ。正誤も点数も送らない。
+// 宛先は同じ配信元の相対パスのみ。外部には一切送らない。
+// サーバーが応答しないとき（オフライン、GitHub Pages など）は黙って諦める。
+const LOG_ENDPOINT = './_log';
+
 const el = {
   home: document.getElementById('screen-home'),
   practice: document.getElementById('screen-practice'),
@@ -115,7 +121,8 @@ const state = {
   pending: [],       // セッション冒頭に出す持ち越し
   minutes: 0,
   timer: null,
-  timeUp: false
+  timeUp: false,
+  logged: false      // その回の学習量をもう記録したか
 };
 
 const keypad = createKeypad({
@@ -347,6 +354,33 @@ function onTimeUp() {
   el.progressFill.style.width = '100%';
 }
 
+/**
+ * その回の学習量を1件だけ記録する。
+ *
+ * 記録できなくてもアプリは何事もなく続く。ここで失敗しても
+ * 画面には何も出さない（本人には関係のない処理のため）。
+ * 1問も解いていない回は記録しない。
+ */
+function logSession() {
+  if (state.logged || !state.minutes || state.solved <= 0) return;
+  state.logged = true;
+
+  try {
+    fetch(LOG_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        date: todayKey(),
+        minutes: state.minutes,
+        solved: state.solved
+      }),
+      keepalive: true
+    }).catch(() => {});
+  } catch {
+    /* 送れなくても構わない */
+  }
+}
+
 function finish() {
   if (state.timer) state.timer.stop();
   keypad.setEnabled(false);
@@ -356,6 +390,7 @@ function finish() {
   sessions.push({ date: todayKey(), minutes: state.minutes, solved: state.solved });
   if (sessions.length > 30) sessions.shift();
   persist();
+  logSession();
 
   // やった問題数だけ。10分の日と60分の日で文言を変えない。
   el.doneCount.textContent = `${state.solved}問`;
@@ -370,6 +405,7 @@ function startSession(minutes) {
   state.solved = 0;
   state.minutes = minutes;
   state.timeUp = false;
+  state.logged = false;
   state.pending = queue.take(MAX_AT_SESSION_START);
 
   levels.startSession();
@@ -434,7 +470,12 @@ el.quitFromPauseBtn.addEventListener('click', finish);
 el.homeBtn.addEventListener('click', goHome);
 
 // アプリが閉じられる直前にも一度だけ保存しておく。
-window.addEventListener('pagehide', persist);
+// 終了画面まで行かずに閉じられた回も、そこまでの分を記録しておく
+// （記録に残らないと「何もしていない」と読めてしまうため）。
+window.addEventListener('pagehide', () => {
+  persist();
+  logSession();
+});
 
 // --- オフライン対応 -------------------------------------------------------
 // Service Worker が登録できなくても（file:// で開いた、対応していない等）

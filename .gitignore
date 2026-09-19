@@ -4,6 +4,12 @@
 CLAUDE.md
 DESIGN.md
 
+# 学習の記録。娘さん本人の記録なので、絶対に公開しない。
+study-log.csv
+
+# この PC で動かすためだけのもの（アプリ本体には関係ない）
+start-server.bat
+
 # OS / OneDrive が勝手に作るもの
 Thumbs.db
 desktop.ini

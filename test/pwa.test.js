@@ -118,8 +118,48 @@ test('外部通信: アプリのコードが外部の URL を参照していな�
     const src = withoutComments(await text(path));
     assert(!/https?:\/\//.test(src), `外部の URL がある: ${path}`);
     assert(!/XMLHttpRequest|sendBeacon|EventSource|WebSocket/.test(src), `通信の仕組みがある: ${path}`);
-    assert(!/\bfetch\s*\(/.test(src), `fetch を使っている: ${path}`);
   }
+});
+
+test('外部通信: 送信するのは学習量の記録だけで、宛先は同じ配信元に限る', async () => {
+  if (!canRun) return;
+
+  // 保護者が学習量を確認するための記録だけは、自宅 PC のサーバーへ送る。
+  // それ以外の送信を足していないこと、宛先が相対パスであることを見張る。
+  const modules = await moduleGraph();
+
+  for (const path of modules) {
+    const src = withoutComments(await text(path));
+    const calls = [...src.matchAll(/\bfetch\s*\(\s*([^,)\s]+)/g)].map((m) => m[1]);
+
+    for (const target of calls) {
+      assert(
+        target === 'LOG_ENDPOINT',
+        `想定外の送信先で fetch している: ${path} / ${target}`
+      );
+    }
+
+    if (src.includes('LOG_ENDPOINT')) {
+      const decl = /const LOG_ENDPOINT\s*=\s*'(\.\/[^']*)'/.exec(src);
+      assert(decl, `LOG_ENDPOINT が相対パスの定数になっていない: ${path}`);
+      assert(!decl[1].includes('//'), `宛先が外部を指している: ${decl[1]}`);
+    }
+  }
+});
+
+test('外部通信: 送るのは 日付 / 時間 / 問題数 だけ', async () => {
+  if (!canRun) return;
+
+  // 正誤や点数を送り始めていないかを見張る。
+  const src = withoutComments(await text('./js/app.js'));
+  const body = /body:\s*JSON\.stringify\(\{([\s\S]*?)\}\)/.exec(src);
+  assert(body, '送信内容を読み取れない');
+
+  const keys = [...body[1].matchAll(/(\w+)\s*:/g)].map((m) => m[1]).sort();
+  assert(
+    JSON.stringify(keys) === JSON.stringify(['date', 'minutes', 'solved']),
+    `送信内容が変わっている: ${keys.join(', ')}`
+  );
 });
 
 test('外部通信: index.html が外部のファイルを読んでいない', async () => {
