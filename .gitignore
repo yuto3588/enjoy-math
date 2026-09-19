@@ -4,8 +4,10 @@
 CLAUDE.md
 DESIGN.md
 
-# 学習の記録。娘さん本人の記録なので、絶対に公開しない。
-study-log.csv
+# 学習の記録。子ども本人の記録なので、絶対に公開しない。
+# サーバーが列を足すときに作る .bak も同じ中身なので、まとめて外す。
+study-log*.csv
+study-log*.csv.bak
 
 # この PC で動かすためだけのもの（アプリ本体には関係ない）
 start-server.bat

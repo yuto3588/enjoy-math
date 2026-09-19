@@ -59,7 +59,9 @@ async function measure(width, height, url = './index.html?level=5&grade=j1') {
     for (let i = 0; i < 100 && doc.querySelectorAll('.key').length === 0; i++) {
       await new Promise((r) => setTimeout(r, 20));
     }
-    assert(doc.querySelectorAll('.key').length === 13, 'テンキーが組み上がっていない');
+    // 中1は13キー（マイナスあり）、小5は14キー（小数点と分数の線）
+    const keyCount = doc.querySelectorAll('.key').length;
+    assert(keyCount === 13 || keyCount === 14, `テンキーが組み上がっていない（${keyCount}キー）`);
 
     const result = { home: snapshot(win, doc) };
 
@@ -112,6 +114,38 @@ test('レイアウト: どの画面サイズでもテンキーが画面内に収
   } finally {
     if (saved === null) localStorage.removeItem(STORAGE_KEY);
     else localStorage.setItem(STORAGE_KEY, saved);
+  }
+});
+
+test('レイアウト: 小5のテンキーも画面内に収まり 48×48px を割らない', async () => {
+  if (!canRun) return;
+
+  // 小5 は小数点と分数の線が増えて最下段の並びが変わる。
+  // ここを見ていないと、キーが1つだけ極端に小さくなっていても気づけない。
+  const saved = localStorage.getItem('math-practice:e5');
+  try {
+    for (const size of SIZES) {
+      const { practice } = await measure(size.w, size.h, './index.html?level=2&grade=e5');
+      const where = `小5 / ${size.name}（${size.w}x${size.h}）`;
+
+      assert(
+        practice.lowestKeyBottom <= practice.viewportH + 1,
+        `${where}: テンキーの下が画面から出ている`
+      );
+      assert(
+        practice.minKeyHeight >= 47.5,
+        `${where}: キーの高さが足りない（${Math.round(practice.minKeyHeight)}px）`
+      );
+      assert(
+        practice.minKeyWidth >= 47.5,
+        `${where}: キーの幅が足りない（${Math.round(practice.minKeyWidth)}px）`
+      );
+      assert(!practice.overflowY, `${where}: 問題画面が縦にスクロールする`);
+      assert(!practice.overflowX, `${where}: 問題画面が横にスクロールする`);
+    }
+  } finally {
+    if (saved === null) localStorage.removeItem('math-practice:e5');
+    else localStorage.setItem('math-practice:e5', saved);
   }
 });
 

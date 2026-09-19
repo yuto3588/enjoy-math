@@ -28,6 +28,9 @@ const BY_PATTERN = {
   order_of_ops: mixed
 };
 
+/** 中1 はマイナスを使う。小数点と分数の線は要らない。 */
+export const KEYPAD = { sign: true, dot: false, slash: false, maxDigits: 3 };
+
 /** 現時点で出題できるレベル。 */
 export const SUPPORTED_LEVELS = Object.keys(BY_LEVEL).map(Number);
 

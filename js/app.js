@@ -15,6 +15,7 @@
 //   レベル / 正答率 / 連続日数 / 累計学習時間 / 前回の点数
 
 import { createRng, randomSeed } from './lib/rng.js';
+import { normalizeAnswer } from './lib/num.js';
 import { createKeypad, forDisplay } from './keypad.js';
 import { STEP, nextStep, retrySpec, easierSpec } from './recovery.js';
 import { explanationFor } from './explain.js';
@@ -128,6 +129,7 @@ function applyGrade(next) {
   });
 
   el.gradeTag.textContent = gradeLabel(grade);
+  buildKeypad();
 }
 
 /**
@@ -161,14 +163,24 @@ const state = {
   logged: false      // その回の学習量をもう記録したか
 };
 
-const keypad = createKeypad({
-  mount: el.keypad,
-  maxDigits: 3,
-  onChange: (value) => {
-    el.answerBox.textContent = forDisplay(value);
-  },
-  onSubmit: handleSubmit
-});
+// テンキーは学年ごとに要るキーが違うので、学年が決まってから組み立てる。
+// 中1はマイナス、小5は小数点と分数の線。
+let keypad = null;
+
+function buildKeypad() {
+  const spec = (course && course.KEYPAD) || { sign: true };
+  keypad = createKeypad({
+    mount: el.keypad,
+    maxDigits: spec.maxDigits || 3,
+    sign: spec.sign !== false,
+    dot: Boolean(spec.dot),
+    slash: Boolean(spec.slash),
+    onChange: (value) => {
+      el.answerBox.textContent = forDisplay(value);
+    },
+    onSubmit: handleSubmit
+  });
+}
 
 // --- 画面 -----------------------------------------------------------------
 
@@ -322,9 +334,12 @@ function nextProblem() {
 
 // --- 解答 -----------------------------------------------------------------
 
-function handleSubmit(value) {
+function handleSubmit(raw) {
   if (!isAnswering()) return;
 
+  // "2.50" と "2.5"、"02" と "2" は同じ答えとして扱う。
+  // 分数の約分だけはしない（約分忘れを専用の解説で拾うため）。
+  const value = normalizeAnswer(raw);
   const correct = value === state.current.answer;
   keypad.setEnabled(false);
 

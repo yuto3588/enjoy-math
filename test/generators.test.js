@@ -8,6 +8,7 @@ import {
   generate, patternsFor, formsFor, maxMagnitudeFor, allPatterns, SUPPORTED_LEVELS
 } from '../js/generators/index.js';
 import { validateProblem, FORMS, PATTERNS } from '../js/lib/problem.js';
+import { courseFor, readyGrades } from '../js/courses.js';
 
 const N = 1200;
 
@@ -47,10 +48,27 @@ test('全レベル: Lv1-5 がすべて出題できる', () => {
 });
 
 test('全レベル: DESIGN.md の pattern がすべてジェネレータを持つ', () => {
-  const implemented = new Set(allPatterns());
+  // pattern の一覧は学年をまたいで1つなので、どの学年かは問わず
+  // 「どこかのコースが作れる」ことだけを確かめる。
+  const implemented = new Set();
+  for (const gradeId of readyGrades()) {
+    for (const name of courseFor(gradeId).allPatterns()) implemented.add(name);
+  }
+
   for (const name of PATTERNS) {
     if (name === 'fraction_sign') continue; // 分数は当面出さない（Phase 6 で見送り）
     assert(implemented.has(name), `pattern "${name}" にジェネレータが無い`);
+  }
+});
+
+test('全レベル: 同じ pattern を2つの学年が持っていない', () => {
+  // 重複すると、解説のテンプレート（pattern:reason で引く）がぶつかる。
+  const owner = new Map();
+  for (const gradeId of readyGrades()) {
+    for (const name of courseFor(gradeId).allPatterns()) {
+      assert(!owner.has(name), `pattern "${name}" が ${owner.get(name)} と ${gradeId} で重複`);
+      owner.set(name, gradeId);
+    }
   }
 });
 

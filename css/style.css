@@ -421,6 +421,10 @@ body {
 }
 .key.zero { grid-column: 1 / span 3; grid-row: 4; }
 
+/* 小5 は最下段に 0 と小数点を並べる。位置は取り違えないよう明示しておく。 */
+.key.zero-narrow { grid-column: 1 / span 2; grid-row: 4; }
+.key.point { grid-column: 3; grid-row: 4; font-size: 26px; }
+
 /* ------------------------------------------------------------------
    解説パネル（誤答時）
    評価語を出さない。今解いたこの問題の手順だけを 3 行以内で出す。

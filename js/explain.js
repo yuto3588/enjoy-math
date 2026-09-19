@@ -116,6 +116,86 @@ const TEMPLATES = {
     '計算の順番は合っている。符号を確かめる',
     f.stepExpr,
     `答えは ${answer}`
+  ],
+
+  // --- 小5 小数 ---
+
+  'decimal_mul_int:point_dropped': (f, answer) => [
+    `${f.intA} × ${f.n} = ${f.intProduct} まで合っている`,
+    `${f.aText} は小数点より下が1けたなので、答えも1けた分もどす`,
+    `答えは ${answer}`
+  ],
+  'decimal_mul_int:point_shifted': (f, answer) => [
+    'もどすけた数は、かけられる数と同じだけ',
+    `${f.aText} は小数点より下が1けた。答えも1けた`,
+    `答えは ${answer}`
+  ],
+
+  'decimal_div_int:point_dropped': (f, answer) => [
+    `${f.intDividend} ÷ ${f.n} = ${f.intQuotient} まで合っている`,
+    `小数点は ${f.aText} と同じ位置に打つ`,
+    `答えは ${answer}`
+  ],
+  'decimal_div_int:point_shifted': (f, answer) => [
+    '割り算では小数点の位置は動かない',
+    `${f.aText} の小数点の真上に打つ`,
+    `答えは ${answer}`
+  ],
+
+  'decimal_mul_dec:point_count_wrong': (f, answer) => [
+    '小数点より下のけた数は、2つを足した数',
+    `${f.aText} が1けた、${f.bText} が1けた。合わせて2けた`,
+    `答えは ${answer}`
+  ],
+  'decimal_mul_dec:point_dropped': (f, answer) => [
+    `${f.intA} × ${f.intB} = ${f.intProduct} まで合っている`,
+    '小数点より下は 1けた + 1けた で2けた分もどす',
+    `答えは ${answer}`
+  ],
+
+  'decimal_div_dec:point_shifted': (f, answer) => [
+    '割る数と割られる数を、両方とも同じだけ10倍する',
+    `${f.intA} ÷ ${f.intB} と同じになる`,
+    `答えは ${answer}`
+  ],
+  'decimal_div_dec:multiplied_instead': (f, answer) => [
+    'これは割り算。かけるのではない',
+    `${f.intA} ÷ ${f.intB} と同じ`,
+    `答えは ${answer}`
+  ],
+
+  // --- 小5 分数 ---
+
+  'fraction_same_den:not_reduced': (f, answer) => [
+    `${f.rawText} まで合っている`,
+    `分子と分母を ${f.divisor} で割れる`,
+    `約分して ${answer}`
+  ],
+  'fraction_same_den:denominator_added': (f, answer) => [
+    '分母は足さない。分母が同じときは分子だけを計算する',
+    `${f.x} + ${f.y} = ${f.total} で ${f.rawText}`,
+    `約分して ${answer}`
+  ],
+  'fraction_same_den:operation_flipped': (f, answer) => [
+    'これは引き算。足すのではない',
+    `${f.x} - ${f.y} = ${f.total} で ${f.rawText}`,
+    `約分して ${answer}`
+  ],
+
+  'fraction_diff_den:denominator_added': (f, answer) => [
+    '分母は足さない。同じ分母にそろえてから分子を計算する',
+    f.alignedText,
+    `答えは ${answer}`
+  ],
+  'fraction_diff_den:not_aligned': (f, answer) => [
+    `分母が ${f.d1} と ${f.d2} で違うので、そのままでは計算できない`,
+    `${f.lcmValue} にそろえて ${f.alignedText}`,
+    `答えは ${answer}`
+  ],
+  'fraction_diff_den:not_reduced': (f, answer) => [
+    `${f.rawText} まで合っている`,
+    '分子と分母を同じ数で割れるときは、最後まで約分する',
+    `答えは ${answer}`
   ]
 };
 
