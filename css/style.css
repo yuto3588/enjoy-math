@@ -346,7 +346,36 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-.answer.hidden { display: none; }
+/* 文章題の問題文。式と違って折り返してよい。
+   左寄せにするのは、2行になったときに読み出しの位置が揃うため。 */
+.word {
+  margin: 0;
+  width: 100%;
+  max-width: 420px;
+  font-size: clamp(15px, 4.4vw, 19px);
+  line-height: 1.6;
+  text-align: left;
+}
+.word:empty { display: none; }
+
+/* 式が無い問題（文章題）では、式の場所を詰める */
+.question:empty { display: none; }
+
+.answer-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+.answer-row.hidden { display: none; }
+
+/* cm² や 円。答えの右に小さく置く。入力するのは数だけ。 */
+.unit {
+  padding-bottom: 12px;
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--muted);
+}
+.unit:empty { display: none; }
 
 .answer {
   min-width: 140px;

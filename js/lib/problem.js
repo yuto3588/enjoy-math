@@ -19,6 +19,10 @@ export const PATTERNS = [
   'decimal_div_dec',   // 小数 ÷ 小数
   'fraction_same_den', // 分数の加減（分母が同じ）
   'fraction_diff_den', // 分数の加減（通分が要る）
+  'e5_area',           // 面積（文章題）
+  'e5_volume',         // 体積（文章題）
+  'e5_rate',           // 割合（文章題）
+  'e5_average',        // 平均・単位量あたり（文章題）
 
   // --- 中3 ---
   'sqrt_perfect',      // √36
@@ -74,6 +78,12 @@ export const FORMS = [
   'frac_sub_same',     // 5/6 - 1/6
   'frac_add_diff',     // 1/2 + 1/6
   'frac_sub_diff',     // 3/4 - 1/6
+
+  // 小5 文章題
+  'e5_area_rect', 'e5_area_square', 'e5_area_triangle',
+  'e5_volume_box', 'e5_volume_cube',
+  'e5_percent_of', 'e5_percent_rate', 'e5_percent_off',
+  'e5_average_score', 'e5_per_unit',
 
   // 中3 平方根
   'root_of_square',    // √36
@@ -149,8 +159,20 @@ export function validateProblem(p) {
   if (!PATTERNS.includes(p.pattern)) push(`未知の pattern: ${p.pattern}`);
   if (!FORMS.includes(p.form)) push(`未知の form: ${p.form}`);
 
-  if (typeof p.question !== 'string' || p.question.trim().length === 0) {
-    push('question が空');
+  // 式の問題は question に式を持つ。文章題は question が空で、
+  // かわりに prompt（日本語の問題文）と unit（答えの単位）を持つ。
+  const hasWords = typeof p.prompt === 'string' && p.prompt.trim().length > 0;
+  const hasExpr = typeof p.question === 'string' && p.question.trim().length > 0;
+
+  if (!hasWords && !hasExpr) push('question も prompt も空');
+  if (p.prompt !== undefined && typeof p.prompt !== 'string') push('prompt が文字列でない');
+  if (p.unit !== undefined && typeof p.unit !== 'string') push('unit が文字列でない');
+
+  if (hasWords) {
+    if (hasExpr) push('文章題なのに式も入っている（どちらか一方にする）');
+    if (!p.prompt.endsWith('。')) push(`問題文が文で終わっていない: ${p.prompt}`);
+    // 画面がスクロールしない長さに収める
+    if (p.prompt.length > 60) push(`問題文が長すぎる（${p.prompt.length}文字）: ${p.prompt}`);
   }
 
   // 答え方は2つある。

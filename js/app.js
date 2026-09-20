@@ -68,8 +68,11 @@ const el = {
   done: document.getElementById('screen-done'),
   carryNote: document.getElementById('carryNote'),
   stage: document.getElementById('stage'),
+  word: document.getElementById('word'),
   question: document.getElementById('question'),
+  answerRow: document.getElementById('answerRow'),
   answerBox: document.getElementById('answerBox'),
+  unit: document.getElementById('unit'),
   keypad: document.getElementById('keypad'),
   choices: document.getElementById('choices'),
   progressFill: document.getElementById('progressFill'),
@@ -329,7 +332,10 @@ function nextProblem() {
   state.recent.push(state.current);
   if (state.recent.length > 3) state.recent.shift();
 
-  showQuestion(state.current.question);
+  // 文章題は日本語の文、式の問題は式。どちらか一方だけを出す。
+  el.word.textContent = state.current.prompt || '';
+  el.unit.textContent = state.current.unit || '';
+  showQuestion(state.current.question || '');
   showInput(state.current);
 }
 
@@ -345,7 +351,7 @@ function showInput(problem) {
 
   el.keypad.classList.toggle('hidden', isChoice);
   el.choices.classList.toggle('active', isChoice);
-  el.answerBox.classList.toggle('hidden', isChoice);
+  el.answerRow.classList.toggle('hidden', isChoice);
 
   if (!isChoice) {
     keypad.clear();
@@ -474,11 +480,14 @@ function onWrong(submitted) {
 /** 誤答が traps に一致すれば専用解説、しなければ汎用の steps を出す。 */
 function showExplanation(submitted, buttonLabel) {
   const { lines } = explanationFor(state.current, submitted);
-  openOverlay({
-    expr: `${state.current.question} = ${state.current.answer}`,
-    lines,
-    buttonLabel
-  });
+
+  // 式の問題は「式 = 答え」を上に出す。
+  // 文章題は問題文が長くて1行に収まらないので、答えだけを出す。
+  const expr = state.current.question
+    ? `${state.current.question} = ${state.current.answer}`
+    : `答え ${state.current.answer}${state.current.unit || ''}`;
+
+  openOverlay({ expr, lines, buttonLabel });
 }
 
 // --- セッションの進行 -----------------------------------------------------

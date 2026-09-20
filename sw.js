@@ -12,7 +12,7 @@
 // ファイルを増やしたら PRECACHE にも足すこと。
 // test/pwa.test.js が、追加し忘れていないかを見張っている。
 
-const VERSION = 'v5';
+const VERSION = 'v6';
 const CACHE_NAME = `enjoy-math-${VERSION}`;
 
 const PRECACHE = [
@@ -41,6 +41,7 @@ const PRECACHE = [
   './js/generators/e5/index.js',
   './js/generators/e5/decimal.js',
   './js/generators/e5/fraction.js',
+  './js/generators/e5/word.js',
   './js/generators/j3/index.js',
   './js/generators/j3/poly.js',
   './js/generators/j3/sqrt.js',

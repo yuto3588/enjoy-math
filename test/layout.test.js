@@ -122,10 +122,30 @@ test('レイアウト: 小5のテンキーも画面内に収まり 48×48px を�
 
   // 小5 は小数点と分数の線が増えて最下段の並びが変わる。
   // ここを見ていないと、キーが1つだけ極端に小さくなっていても気づけない。
+  //
+  // Lv5 は文章題で、日本語の文が2行に折り返す。
+  // 式1行の問題より縦に場所を取るので、両方を測る。
   const saved = localStorage.getItem('math-practice:e5');
+  const kinds = [
+    ['計算', './index.html?level=2&grade=e5'],
+    ['文章題', './index.html?level=5&grade=e5']
+  ];
+
   try {
     for (const size of SIZES) {
-      const { practice } = await measure(size.w, size.h, './index.html?level=2&grade=e5');
+      for (const [kind, url] of kinds) {
+        const m = await measure(size.w, size.h, url);
+        const spot = `小5 ${kind} / ${size.name}（${size.w}x${size.h}）`;
+
+        assert(
+          m.practice.lowestKeyBottom <= m.practice.viewportH + 1,
+          `${spot}: テンキーの下が画面から出ている`
+        );
+        assert(!m.practice.overflowY, `${spot}: 問題画面が縦にスクロールする`);
+        assert(!m.practice.overflowX, `${spot}: 問題画面が横にスクロールする`);
+      }
+
+      const { practice } = await measure(size.w, size.h, kinds[0][1]);
       const where = `小5 / ${size.name}（${size.w}x${size.h}）`;
 
       assert(

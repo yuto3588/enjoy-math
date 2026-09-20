@@ -198,6 +198,98 @@ const TEMPLATES = {
     `答えは ${answer}`
   ],
 
+  // --- 小5 面積・体積 ---
+
+  'e5_area:perimeter_not_area': (f, answer) => [
+    'それは まわりの長さ。ここで聞かれているのは面積',
+    f.b ? `面積は たて × よこ で ${f.a} × ${f.b}` : `面積は 1辺 × 1辺 で ${f.a} × ${f.a}`,
+    `答えは ${answer} cm²`
+  ],
+  'e5_area:added_not_multiplied': (f, answer) => [
+    '面積を出すときは、足すのではなくかける',
+    f.base ? `${f.base} × ${f.height} ÷ 2` : `${f.a} × ${f.b}`,
+    `答えは ${answer} cm²`
+  ],
+  'e5_area:doubled_not_squared': (f, answer) => [
+    '2倍ではなく、同じ数を2回かける',
+    `${f.a} × ${f.a} = ${answer}`,
+    `答えは ${answer} cm²`
+  ],
+  'e5_area:forgot_half': (f, answer) => [
+    `${f.product} は長方形にしたときの面積`,
+    '三角形はその半分なので、2で割る',
+    `${f.product} ÷ 2 = ${answer}`
+  ],
+
+  'e5_volume:bottom_only': (f, answer) => [
+    'それは1つの面の広さ',
+    f.b ? `体積は たて × よこ × 高さ で ${f.a} × ${f.b} × ${f.c}` : `体積は ${f.a} を3回かける`,
+    `答えは ${answer} cm³`
+  ],
+  'e5_volume:added_not_multiplied': (f, answer) => [
+    '体積を出すときは、足すのではなくかける',
+    `${f.a} × ${f.b} × ${f.c} = ${answer}`,
+    `答えは ${answer} cm³`
+  ],
+  'e5_volume:tripled_not_cubed': (f, answer) => [
+    '3倍ではなく、同じ数を3回かける',
+    `${f.a} × ${f.a} × ${f.a} = ${answer}`,
+    `答えは ${answer} cm³`
+  ],
+
+  // --- 小5 割合 ---
+
+  'e5_rate:rest_not_part': (f, answer) => [
+    'それは残りのほう',
+    f.price !== undefined
+      ? `引く分は ${f.discount}、代金は ${f.price} - ${f.discount}`
+      : `聞かれているのは ${f.percent}% にあたる分`,
+    `答えは ${answer}`
+  ],
+  'e5_rate:forgot_divide': (f, answer) => [
+    '% は 100 を全体とした言い方',
+    `${f.whole} × ${f.percent} のあと、100 で割る`,
+    `答えは ${answer}`
+  ],
+  'e5_rate:count_not_percent': (f, answer) => [
+    'それは人数。聞かれているのは割合',
+    `${f.part} ÷ ${f.whole} を計算して、100 をかける`,
+    `答えは ${answer} %`
+  ],
+  'e5_rate:discount_not_price': (f, answer) => [
+    `${f.discount} は引く分`,
+    `代金は ${f.price} - ${f.discount}`,
+    `答えは ${answer} 円`
+  ],
+  'e5_rate:added_not_subtracted': (f, answer) => [
+    '「引き」なので、代金は安くなる',
+    `${f.price} - ${f.discount} = ${answer}`,
+    `答えは ${answer} 円`
+  ],
+
+  // --- 小5 平均・単位量あたり ---
+
+  'e5_average:not_divided': (f, answer) => [
+    `${f.total} は合計`,
+    `平均は 合計 ÷ 個数。${f.total} ÷ ${f.count}`,
+    `答えは ${answer}`
+  ],
+  'e5_average:count_not_average': (f, answer) => [
+    'それは個数',
+    `平均は 合計 ÷ 個数。${f.total} ÷ ${f.count}`,
+    `答えは ${answer}`
+  ],
+  'e5_average:multiplied_not_divided': (f, answer) => [
+    '1つ分を出すので、かけるのではなく割る',
+    `${f.total} ÷ ${f.count} = ${answer}`,
+    `答えは ${answer} 円`
+  ],
+  'e5_average:total_not_each': (f, answer) => [
+    `${f.total} は全部の代金`,
+    `1つ分は ${f.total} ÷ ${f.count}`,
+    `答えは ${answer} 円`
+  ],
+
   // --- 中3 平方根 ---
 
   'sqrt_perfect:halved': (f, answer) => [

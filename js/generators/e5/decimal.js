@@ -23,10 +23,10 @@ const LEVEL_CONFIG = {
     ]
   },
   2: {
-    patterns: [['decimal_mul_dec', 10]]
-  },
-  3: {
-    patterns: [['decimal_div_dec', 10]]
+    patterns: [
+      ['decimal_mul_dec', 5],
+      ['decimal_div_dec', 5]
+    ]
   }
 };
 
@@ -37,7 +37,7 @@ const FORMS_BY_PATTERN = {
   decimal_div_dec: ['dec_div_dec']
 };
 
-export const SUPPORTED_LEVELS = [1, 2, 3];
+export const SUPPORTED_LEVELS = [1, 2];
 
 /**
  * 1桁小数の元になる整数を引く（値は scaled / 10）。

@@ -22,8 +22,12 @@ import { gcd, lcm, reduceFraction, fracStr, reducedFracStr } from '../../lib/num
 import { dedupeTraps } from '../../lib/problem.js';
 
 const LEVEL_CONFIG = {
-  4: { patterns: [['fraction_same_den', 10]] },
-  5: { patterns: [['fraction_diff_den', 10]] }
+  3: {
+    patterns: [
+      ['fraction_same_den', 4],
+      ['fraction_diff_den', 6]
+    ]
+  }
 };
 
 const FORMS_BY_PATTERN = {
@@ -31,7 +35,7 @@ const FORMS_BY_PATTERN = {
   fraction_diff_den: ['frac_add_diff', 'frac_sub_diff']
 };
 
-export const SUPPORTED_LEVELS = [4, 5];
+export const SUPPORTED_LEVELS = [3];
 
 function pick(rng, list) {
   return list[intBetween(rng, 0, list.length - 1)];
@@ -207,7 +211,7 @@ const BUILDERS = {
 // --- 公開 API -------------------------------------------------------------
 
 export function generate(level, rng, recent = [], opts = {}) {
-  const base = LEVEL_CONFIG[level] || LEVEL_CONFIG[4];
+  const base = LEVEL_CONFIG[level] || LEVEL_CONFIG[3];
 
   if (opts.pattern && !BUILDERS[opts.pattern]) {
     throw new Error(`e5/fraction: 未知の pattern ${opts.pattern}`);

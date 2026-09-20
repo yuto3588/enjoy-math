@@ -58,8 +58,13 @@
     </div>
 
     <div class="stage" id="stage">
+      <!-- 文章題のときだけ出る日本語の問題文。式の問題では空になる -->
+      <p class="word" id="word"></p>
       <div class="question" id="question"></div>
-      <div class="answer" id="answerBox"></div>
+      <div class="answer-row" id="answerRow">
+        <div class="answer" id="answerBox"></div>
+        <span class="unit" id="unit"></span>
+      </div>
       <div class="tick" id="tick" aria-hidden="true">✓</div>
     </div>
 
